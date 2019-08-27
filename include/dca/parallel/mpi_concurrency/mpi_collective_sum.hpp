@@ -195,17 +195,31 @@ void MPICollectiveSum::sum(scalar_type& value) const {
 
 template <typename scalar_type>
 void MPICollectiveSum::sum(std::vector<scalar_type>& m) const {
-  std::vector<scalar_type> result(m.size());
+  DCA_LOG("MPICollectiveSum::sum std::vector<scalar_type>");
+  std::vector<scalar_type> result(m.size(), scalar_type(0));
 
   sum(m.data(), result.data(), m.size());
 
   m = std::move(result);
 }
 
-template <typename Scalar>
-void MPICollectiveSum::sum(std::map<std::string, std::vector<Scalar>>& m) {
-  for (auto it = m.begin(); it != m.end(); ++it) {
-    delayedSum((it->second));
+template <typename scalar_type>
+void MPICollectiveSum::sum(std::map<std::string, std::vector<scalar_type>>& m) const {
+  typedef typename std::map<std::string, std::vector<scalar_type>>::iterator iterator_type;
+  DCA_LOG("MPICollectiveSum::sum std::map");
+
+  iterator_type it = m.begin();
+
+  for (; it != m.end(); ++it) {
+    std::vector<scalar_type> values((it->second).size());
+
+    for (size_t l = 0; l < (it->second).size(); l++)
+      values[l] = (it->second)[l];
+
+    sum(values);
+
+    for (size_t l = 0; l < (it->second).size(); l++)
+      (it->second)[l] = values[l];
   }
 
   resolveSums();
@@ -215,7 +229,9 @@ template <typename scalar_type, class domain>
 void MPICollectiveSum::sum(func::function<scalar_type, domain>& f) const {
   func::function<scalar_type, domain> f_sum;
 
-  sum(f, f_sum);
+  DCA_LOG("MPICollectiveSum::sum func::function");
+  MPI_Allreduce(f.values(), f_sum.values(), MPITypeMap<scalar_type>::factor() * f.size(),
+                MPITypeMap<scalar_type>::value(), MPI_SUM, MPIProcessorGrouping::get());
 
   f = std::move(f_sum);
 
@@ -231,13 +247,16 @@ void MPICollectiveSum::sum(func::function<scalar_type, domain>& f) const {
 template <typename scalar_type, class domain>
 void MPICollectiveSum::sum(const func::function<scalar_type, domain>& f_in,
                            func::function<scalar_type, domain>& f_out) const {
-  sum(f_in.values(), f_out.values(), f_in.size());
+  DCA_LOG("MPICollectiveSum::sum const func::function");
+  MPI_Allreduce(f_in.values(), f_out.values(), MPITypeMap<scalar_type>::factor() * f_in.size(),
+                MPITypeMap<scalar_type>::value(), MPI_SUM, MPIProcessorGrouping::get());
 }
 
 template <typename scalar_type, class domain>
 void MPICollectiveSum::sum(func::function<std::vector<scalar_type>, domain>& f) const {
   int Nr = f(0).size();
   int Nc = f.size();
+  DCA_LOG("MPICollectiveSum::sum func::function<std::vector<scalar_type>, domain>");
 
   linalg::Matrix<scalar_type, linalg::CPU> M("M", std::pair<int, int>(Nr, Nc));
 

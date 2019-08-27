@@ -23,8 +23,6 @@
 
 #include "dca/config/threading.hpp"
 #include "dca/linalg/util/handle_functions.hpp"
-#include "dca/parallel/stdthread/thread_pool/thread_pool.hpp"
-#include "dca/parallel/util/get_workload.hpp"
 #include "dca/phys/dca_step/cluster_solver/stdthread_qmci/stdthread_qmci_accumulator.hpp"
 #include "dca/phys/dca_step/cluster_solver/thread_task_handler.hpp"
 #include "dca/profiling/events/time.hpp"
@@ -291,12 +289,12 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalker(int id) {
                 accumulators_queue.pop();
             }
         }
+*/
         // make sure yield is outside of lock scope, this is here
         // to allow another thread to put an accumulator onto the queue
         // if only a single thread is being used (at a time, e.g hpx::threads=1)
-        dca::parallel::thread_traits::yield();
+//        dca::parallel::thread_traits::yield();
       }
-*/
       acc_ptr->updateFrom(walker);
     }
   }
@@ -471,7 +469,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalkerAndAccumulator(int id) {
 
   ++walk_finished_;
   {
-    std::lock_guard<std::mutex> lock(mutex_merge_);
+    dca::parallel::thread_traits::scoped_lock lock(mutex_merge_);
     accumulator_obj.sumTo(QmciSolver::accumulator_);
   }
 
