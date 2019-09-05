@@ -158,6 +158,12 @@ if (DCA_HAVE_CUDA)
     ${DCA_CUDA_LIBS})
 endif()
 
+option(DCA_HAVE_HPX "Enable HPX support." OFF)
+if (DCA_HAVE_HPX)
+  include(dca_hpx)
+  dca_setup_hpx()
+endif()
+
 # The BLAS and LAPACK libraries in DCA_EXTERNAL_LIBS should be linked after MAGMA.
 list(APPEND DCA_LIBS ${DCA_EXTERNAL_LIBS})
 
