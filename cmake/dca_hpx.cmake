@@ -15,6 +15,8 @@ function(dca_setup_hpx)
     endif ()
     if (EXISTS "${HPX_DIR}")
         find_package(HPX REQUIRED NO_CMAKE_PACKAGE_REGISTRY)
+        set(DCA_HAVE_HPX TRUE CACHE INTERNAL "" FORCE)
+        dca_add_haves_define(DCA_HAVE_HPX)
 
         if (NOT HPX_FOUND)
             message(WARNING "HPX could not be found, please set HPX_DIR to help locating it.")
