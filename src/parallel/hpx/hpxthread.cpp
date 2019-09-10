@@ -16,12 +16,12 @@ namespace dca {
 
         constexpr char hpxthread::parallel_type_str_[];
 
-        hpx::ostream& operator<<(hpx::ostream& o, const hpxthread& c) {
-            o << '\n'
-              << "threading type:" << c.parallel_type_str_ << '\n'
-              << "number of std::threads:" << HPXThreadPool::get_instance().size();
-            return o;
-        }
+//        hpx::ostream& operator<<(hpx::ostream& o, const hpxthread& c) {
+//            o << '\n'
+//              << "threading type:" << c.parallel_type_str_ << '\n'
+//              << "number of std::threads:" << HPXThreadPool::get_instance().size();
+//            return o;
+//        }
 
     }  // parallel
 }  // dca

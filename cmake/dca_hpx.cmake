@@ -34,6 +34,7 @@ function(dca_setup_hpx)
         endif ()
 
         include_directories(${HPX_INCLUDE_DIRS})
+        list(APPEND DCA_INCLUDE_DIRS ${HPX_INCLUDE_DIRS})
         link_directories(${HPX_LIBRARY_DIR})
 
         if (HPX_GIT_COMMIT)

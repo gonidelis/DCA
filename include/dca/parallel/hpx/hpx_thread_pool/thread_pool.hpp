@@ -27,7 +27,7 @@
 #include <vector>
 
 #include "dca/parallel/hpx/hpx_thread_pool/thread_pool.hpp"
-#include "hpx/runtime/threads/thread.hpp"
+#include "hpx/include/threads.hpp"
 #include "hpx/lcos/local/mutex.hpp"
 #include "hpx/lcos/local/condition_variable.hpp"
 #include "hpx/lcos/local/packaged_task.hpp"
@@ -49,8 +49,9 @@ public:
 
   // Adds to the queue of tasks the execution of f(args...). This method is thread safe.
   // Returns: a future to the return value of f(args...).
-  template <class F, class... Args>
-  auto enqueue(F&& f, Args&&... args) -> hpx::future<typename std::result_of<F(Args...)>::type>;
+  template<class F, class... Args>
+  auto enqueue(F&& f, Args&&... args)
+  -> hpx::future<typename std::result_of<F(Args...)>::type>;
 
   // The destructor concludes all the pending work gracefully before merging all spawned threads.
   ~HPXThreadPool();

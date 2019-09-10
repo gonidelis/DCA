@@ -10,11 +10,11 @@
 //
 // This file implements the methods of thead_pool.hpp
 
-#include "dca/parallel/hpxthread/thread_pool/thread_pool.hpp"
+#include "dca/parallel/hpx/hpx_thread_pool/thread_pool.hpp"
 
 #include "mpi.h"
 
-#include "dca/parallel/hpxthread/thread_pool/affinity.hpp"
+#include "dca/parallel/hpx/hpx_thread_pool/affinity.hpp"
 
 namespace dca {
     namespace parallel {

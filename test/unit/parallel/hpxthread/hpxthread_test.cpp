@@ -10,7 +10,7 @@
 //
 // This file tests stdthread.hpp.
 
-//#include "dca/parallel/hpx/hpx_thread_pool/thread_pool.hpp"
+#include "dca/parallel/hpx/hpx_thread_pool/thread_pool.hpp"
 #include "dca/parallel/hpx/hpxthread.hpp"
 #include <hpx/hpx_init.hpp>
 #include "gtest/gtest.h"
@@ -24,7 +24,7 @@ TEST(HpxthreadTest, Execute) {
 //    vec[id] += id;
 //};
 Threading threading;
-
+dca::parallel::HPXThreadPool pool(1);
 //const int num_threads = 4;
 //std::vector<int> vec{0, 10, 20, 30};
 //std::vector<int> vec_check{0, 11, 22, 33};
