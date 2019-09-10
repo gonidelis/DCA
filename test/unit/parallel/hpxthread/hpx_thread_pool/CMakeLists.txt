@@ -1,4 +1,4 @@
 # thread pool unit tests
 
-dca_add_gtest(thread_pool_test GTEST_MAIN LIBS parallel_stdthread)
-dca_add_gtest(affinity_test GTEST_MAIN LIBS parallel_stdthread)
+dca_add_gtest(hpxthread_pool_test GTEST_MAIN LIBS parallel_hpxthread)
+dca_add_gtest(hpxaffinity_test GTEST_MAIN LIBS parallel_hpxthread)

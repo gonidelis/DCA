@@ -33,7 +33,7 @@ namespace dca {
                 assert(num_threads > 0);
 
                 std::vector<hpx::future<void>> futures;
-                auto& pool = ThreadPool::get_instance();
+                auto& pool = HPXThreadPool::get_instance();
                 pool.enlarge(num_threads);
 
                 // Fork.
@@ -55,7 +55,7 @@ namespace dca {
                 using ReturnType = typename std::result_of<F(int, int, Args...)>::type;
 
                 std::vector<hpx::future<ReturnType>> futures;
-                auto& pool = ThreadPool::get_instance();
+                auto& pool = HPXThreadPool::get_instance();
                 pool.enlarge(num_threads);
 
                 // Spawn num_threads tasks.

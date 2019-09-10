@@ -19,14 +19,14 @@
 namespace dca {
     namespace parallel {
 
-        ThreadPool::ThreadPool(size_t n_threads) : stop_(false), active_id_(0) {
+        HPXThreadPool::HPXThreadPool(size_t n_threads) : stop_(false), active_id_(0) {
             core_count_ = get_core_count();
             master_affinity_ = get_affinity();
 
             enlarge(n_threads);
         }
 
-        ThreadPool::~ThreadPool() {
+        HPXThreadPool::~HPXThreadPool() {
             stop_ = true;
             for (auto& condition : condition_)
                 condition->notify_one();
@@ -34,7 +34,7 @@ namespace dca {
                 worker.join();
         }
 
-        void ThreadPool::enlarge(size_t n_threads) {
+        void HPXThreadPool::enlarge(size_t n_threads) {
             if (workers_.size() >= n_threads)
                 return;
 
@@ -54,14 +54,14 @@ namespace dca {
             for (size_t id = workers_.size(); id < n_threads; ++id) {
                 queue_mutex_.emplace_back(std::make_unique<hpx::lcos::local::mutex>());
                 condition_.emplace_back(std::make_unique<hpx::lcos::local::condition_variable>());
-                tasks_.emplace_back(std::make_unique<std::queue<std::packaged_task<void()>>>());
+                tasks_.emplace_back(std::make_unique<std::queue<hpx::lcos::local::packaged_task<void()>>>());
 
                 // Start a loop on each new thread.
-                workers_.emplace_back(&ThreadPool::workerLoop, this, id);
+                workers_.emplace_back(&HPXThreadPool::workerLoop, this, id);
             }
         }
 
-        void ThreadPool::workerLoop(int id) {
+        void HPXThreadPool::workerLoop(int id) {
             // Set affinity.
             const int shift = core_count_ * id;
             std::vector<int> affinities;
@@ -71,7 +71,7 @@ namespace dca {
             set_affinity(affinities);
 
             while (true) {
-                std::packaged_task<void()> task;
+                hpx::lcos::local::packaged_task<void()> task;
 
                 {  // Acquire new task.
                     std::unique_lock<hpx::lcos::local::mutex> lock(*queue_mutex_[id]);

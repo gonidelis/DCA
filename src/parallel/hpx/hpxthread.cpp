@@ -7,7 +7,7 @@
 //
 // Author: Peter Doak (doakpw@ornl.gov)
 //
-// This file implements stdthread.hpp.
+// This file implements hpxthread.hpp.
 
 #include "dca/parallel/hpx/hpxthread.hpp"
 
@@ -19,7 +19,7 @@ namespace dca {
         hpx::ostream& operator<<(hpx::ostream& o, const hpxthread& c) {
             o << '\n'
               << "threading type:" << c.parallel_type_str_ << '\n'
-              << "number of std::threads:" << ThreadPool::get_instance().size();
+              << "number of std::threads:" << HPXThreadPool::get_instance().size();
             return o;
         }
 
