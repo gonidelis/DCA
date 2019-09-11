@@ -36,7 +36,7 @@
 #include "dca/phys/models/analytic_hamiltonians/twoband_chain.hpp"
 #include "dca/phys/models/tight_binding_model.hpp"
 #include "dca/parallel/mpi_concurrency/mpi_concurrency.hpp"
-#include "dca/parallel/stdthread/stdthread.hpp"
+#include "dca/parallel/hpx/hpxthread.hpp"
 #include "dca/phys/parameters/parameters.hpp"
 #include "dca/profiling/null_profiler.hpp"
 #include "dca/testing/minimalist_printer.hpp"
@@ -44,6 +44,8 @@
 #include "dca/util/modules.hpp"
 #include "dca/io/hdf5/hdf5_reader.hpp"
 #include "dca/io/hdf5/hdf5_writer.hpp"
+
+#include "hpx/hpx_main.hpp"
 
 // Set to true to dump the result in an hdf5 file.
 constexpr bool write_G_r_w = false;
@@ -55,7 +57,7 @@ using Model1 = dca::phys::models::TightBindingModel<
     dca::phys::models::singleband_chain<dca::phys::domains::no_symmetry<2>>>;
 using Model2 = dca::phys::models::TightBindingModel<
     dca::phys::models::twoband_chain<dca::phys::domains::no_symmetry<2>>>;
-using Threading = dca::parallel::stdthread;
+using Threading = dca::parallel::hpxthread;
 
 #ifdef UPDATE_BASELINE
 using Parameters = dca::phys::params::Parameters<Concurrency, Threading, dca::profiling::NullProfiler,

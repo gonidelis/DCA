@@ -18,7 +18,12 @@
 #include <iostream>
 #include <vector>
 
-#include "dca/parallel/hpx/hpx_thread_pool/thread_pool.hpp"
+//#include "dca/parallel/hpx/hpx_thread_pool/thread_pool.hpp"
+#include "hpx/include/async.hpp"
+#include "hpx/include/threads.hpp"
+#include "hpx/lcos/local/mutex.hpp"
+#include "hpx/lcos/local/condition_variable.hpp"
+#include "hpx/lcos/local/packaged_task.hpp"
 
 namespace dca {
     namespace parallel {
@@ -33,13 +38,13 @@ namespace dca {
                 assert(num_threads > 0);
 
                 std::vector<hpx::future<void>> futures;
-                auto& pool = HPXThreadPool::get_instance();
-                pool.enlarge(num_threads);
+//                auto& pool = HPXThreadPool::get_instance();
+//                pool.enlarge(num_threads);
 
                 // Fork.
                 for (int id = 0; id < num_threads; ++id)
                     futures.emplace_back(
-                            pool.enqueue(std::forward<F>(f), id, num_threads, std::forward<Args>(args)...));
+                            hpx::async(std::forward<F>(f), id, num_threads, std::forward<Args>(args)...));
                 // Join.
                 for (auto& future : futures)
                     future.get();
@@ -48,6 +53,7 @@ namespace dca {
             // Returns the sum of the return values of f(id, num_tasks, args...) for each integer value of id
             // in [0, num_tasks).
             // Precondition: the return type of f can be initialized with 0.
+            // TODO: ONE PLACE
             template <class F, class... Args>
             auto sumReduction(int num_threads, F&& f, Args&&... args) {
                 assert(num_threads > 0);
@@ -55,13 +61,13 @@ namespace dca {
                 using ReturnType = typename std::result_of<F(int, int, Args...)>::type;
 
                 std::vector<hpx::future<ReturnType>> futures;
-                auto& pool = HPXThreadPool::get_instance();
-                pool.enlarge(num_threads);
+//                auto& pool = HPXThreadPool::get_instance();
+//                pool.enlarge(num_threads);
 
                 // Spawn num_threads tasks.
                 for (int id = 0; id < num_threads; ++id)
                     futures.emplace_back(
-                            pool.enqueue(std::forward<F>(f), id, num_threads, std::forward<Args>(args)...));
+                            hpx::async(std::forward<F>(f), id, num_threads, std::forward<Args>(args)...));
                 // Sum the result of the tasks.
                 ReturnType result = 0;
                 for (auto& future : futures)
@@ -70,7 +76,7 @@ namespace dca {
                 return result;
             }
 
-            friend std::ostream& operator<<(std::ostream& some_ostream, const hpxthread& this_concurrency);
+//            friend std::ostream& operator<<(std::ostream& some_ostream, const hpxthread& this_concurrency);
 
         private:
             static constexpr char parallel_type_str_[] = "stdthread";
