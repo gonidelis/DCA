@@ -85,9 +85,12 @@ function(dca_add_gtest name)
   add_executable(${name} ${name}.cpp ${DCA_ADD_GTEST_SOURCES})
 
 #  if(DCA_ADD_GTEST_HPX AND (DCA_THREADING_LIBRARY STREQUAL HPX))
-#  if(DCA_ADD_GTEST_HPX)
-#    hpx_setup_target(${name})
-#  endif()
+  if(DCA_ADD_GTEST_HPX)
+    find_package(HPX REQUIRED)
+    include_directories(${HPX_INCLUDE_DIRS})
+    link_directories(${HPX_LIBRARY_DIR})
+    hpx_setup_target(${name})
+  endif()
 
   # Create a macro with the project source dir. We use this as the root path for reading files in
   # tests.
