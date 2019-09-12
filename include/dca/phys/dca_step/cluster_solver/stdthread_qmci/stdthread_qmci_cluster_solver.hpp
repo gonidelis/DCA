@@ -24,7 +24,8 @@
 #include "dca/io/buffer.hpp"
 #include "dca/io/hdf5/hdf5_writer.hpp"
 #include "dca/linalg/util/handle_functions.hpp"
-#include "dca/parallel/stdthread/thread_pool/thread_pool.hpp"
+//#include "dca/parallel/stdthread/thread_pool/thread_pool.hpp"
+#include "dca/parallel/hpx/hpxthread.hpp"
 #include "dca/parallel/util/get_workload.hpp"
 #include "dca/phys/dca_step/cluster_solver/stdthread_qmci/stdthread_qmci_accumulator.hpp"
 #include "dca/phys/dca_step/cluster_solver/thread_task_handler.hpp"
@@ -135,7 +136,7 @@ StdThreadQmciClusterSolver<QmciSolver>::StdThreadQmciClusterSolver(Parameters& p
 
   // Create a sufficient amount of cublas handles, cuda streams and threads.
   linalg::util::resizeHandleContainer(thread_task_handler_.size());
-  parallel::ThreadPool::get_instance().enlarge(thread_task_handler_.size());
+//  parallel::ThreadPool::get_instance().enlarge(thread_task_handler_.size());
 }
 
 template <class QmciSolver>
@@ -160,18 +161,18 @@ void StdThreadQmciClusterSolver<QmciSolver>::integrate() {
   if (concurrency_.id() == concurrency_.first())
     thread_task_handler_.print();
 
-  std::vector<std::future<void>> futures;
+  std::vector<hpx::future<void>> futures;
 
   dca::profiling::WallTime start_time;
 
-  auto& pool = dca::parallel::ThreadPool::get_instance();
+//  auto& pool = dca::parallel::ThreadPool::get_instance();
   for (int i = 0; i < thread_task_handler_.size(); ++i) {
     if (thread_task_handler_.getTask(i) == "walker")
-      futures.emplace_back(pool.enqueue(&ThisType::startWalker, this, i));
+      futures.emplace_back(hpx::async(&ThisType::startWalker, this, i));
     else if (thread_task_handler_.getTask(i) == "accumulator")
-      futures.emplace_back(pool.enqueue(&ThisType::startAccumulator, this, i));
+      futures.emplace_back(hpx::async(&ThisType::startAccumulator, this, i));
     else if (thread_task_handler_.getTask(i) == "walker and accumulator")
-      futures.emplace_back(pool.enqueue(&ThisType::startWalkerAndAccumulator, this, i));
+      futures.emplace_back(hpx::async(&ThisType::startWalkerAndAccumulator, this, i));
     else
       throw std::logic_error("Thread task is undefined.");
   }
