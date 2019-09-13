@@ -163,7 +163,6 @@ option(DCA_HAVE_HPX "Enable HPX support." OFF)
 if (DCA_HAVE_HPX)
   include(dca_hpx)
   dca_setup_hpx()
-#  set(DCA_INCLUDE_DIRS ${DCA_INCLUDE_DIRS} ${HPX_INCLUDE_DIRS})
 endif()
 
 # The BLAS and LAPACK libraries in DCA_EXTERNAL_LIBS should be linked after MAGMA.

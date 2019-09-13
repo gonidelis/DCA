@@ -1,6 +1,10 @@
 # phys/dca_step/cluster_solver/shared_tools
 
 if (DCA_HAVE_CUDA)
+  if (DCA_HAVE_HPX)
+    find_package(HPX REQUIRED NO_CMAKE_PACKAGE_REGISTRY)
+    CUDA_INCLUDE_DIRECTORIES(${HPX_INCLUDE_DIRS})
+  endif()
   CUDA_ADD_LIBRARY(mc_tools_kernels
     accumulation/tp/ndft/ndft_kernels.cu
     accumulation/tp/tp_accumulator_kernels.cu
