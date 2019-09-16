@@ -28,6 +28,10 @@
 #include "dca/phys/dca_step/cluster_mapping/coarsegraining/coarsegraining_domain.hpp"
 #include "dca/phys/domains/cluster/centered_cluster_domain.hpp"
 
+#include "hpx/assertion.hpp"
+#include "hpx/runtime/threads/thread_data.hpp"
+#include "hpx/lcos/local/once.hpp"
+
 namespace dca {
 namespace phys {
 namespace clustermapping {
@@ -128,10 +132,11 @@ template <typename concurrency_type>
 void interpolation_matrices<scalar_type, k_dmn, func::dmn_0<coarsegraining_domain<K_dmn, NAME>>>::initialize(
     concurrency_type& concurrency) {
   assert(NAME == K or NAME == TETRAHEDRON_K);
-
-  static std::once_flag flag;
-
-  std::call_once(flag, [&]() {
+HPX_ASSERT(hpx::threads::get_self_ptr() != nullptr);
+  static hpx::lcos::local::once_flag flag;
+HPX_ASSERT(hpx::threads::get_self_ptr() != nullptr);
+    hpx::lcos::local::call_once(flag, [&]() {
+HPX_ASSERT(hpx::threads::get_self_ptr() != nullptr);
     resize_matrices(concurrency);
 
     K_dmn K_dmn_obj;
