@@ -22,7 +22,7 @@
 #include "dca/io/json/json_reader.hpp"
 #include "dca/math/random/std_random_wrapper.hpp"
 #include "dca/parallel/no_concurrency/no_concurrency.hpp"
-#include "dca/parallel/stdthread/stdthread.hpp"
+
 #include "dca/phys/dca_data/dca_data.hpp"
 #include "dca/phys/dca_loop/dca_loop.hpp"
 #include "dca/phys/dca_step/cluster_solver/ctaux/ctaux_cluster_solver.hpp"
@@ -41,6 +41,9 @@
 #include "dca/util/git_version.hpp"
 #include "dca/util/modules.hpp"
 
+#include "dca/parallel/hpx/hpxthread.hpp"
+#include <hpx/hpx_main.hpp>
+
 TEST(dca_sp_DCAplus_thread, Self_energy) {
 #ifdef ATTACH_DEBUG
   std::cout << "Please press <return> after attaching debugger" << std::endl;
@@ -54,7 +57,7 @@ TEST(dca_sp_DCAplus_thread, Self_energy) {
   using ModelType = dca::phys::models::TightBindingModel<LatticeType>;
   using Concurrency = dca::parallel::NoConcurrency;
   using ParametersType =
-      dca::phys::params::Parameters<Concurrency, dca::parallel::stdthread, dca::profiling::NullProfiler,
+      dca::phys::params::Parameters<Concurrency, dca::parallel::hpxthread, dca::profiling::NullProfiler,
                                     ModelType, RngType, dca::phys::solver::CT_AUX>;
   using DcaDataType = dca::phys::DcaData<ParametersType>;
   using ClusterSolverBaseType =

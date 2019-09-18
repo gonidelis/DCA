@@ -20,6 +20,8 @@
 #include "dca/parallel/no_concurrency/no_concurrency.hpp"
 #include "ed_cluster_solver_test_helper.hpp"
 
+#include "hpx/hpx_main.hpp"
+
 TEST(EDClusterSolverSingleSiteTest, ComputeG0AndG) {
   dca::parallel::NoConcurrency concurrency(0, nullptr);
 

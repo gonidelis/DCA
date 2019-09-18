@@ -6,6 +6,7 @@ dca_add_gtest(cluster_operations_test
 
 dca_add_gtest(momentum_exchage_domain_test
   GTEST_MAIN
+  HPX
   LIBS ${DCA_LIBS}
   INCLUDE_DIRS ${DCA_INCLUDE_DIRS};${PROJECT_SOURCE_DIR})
 

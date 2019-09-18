@@ -17,6 +17,8 @@
 #include "dca/math/util/vector_operations.hpp"
 #include "test/unit/phys/dca_step/cluster_solver/test_setup.hpp"
 
+#include "hpx/hpx_main.hpp"
+
 using dca::phys::domains::MomentumExchangeDomain;
 using dca::math::util::isSameVector;
 

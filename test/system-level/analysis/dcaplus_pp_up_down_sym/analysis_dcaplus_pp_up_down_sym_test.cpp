@@ -36,6 +36,8 @@
 #include "dca/phys/parameters/parameters.hpp"
 #include "dca/profiling/null_profiler.hpp"
 
+#include "hpx/hpx_main.hpp"
+
 using namespace dca;
 
 TEST(AnalysisDCAplusParticleParticleUpDownSymmetricTest, LeadingEigenvalues) {

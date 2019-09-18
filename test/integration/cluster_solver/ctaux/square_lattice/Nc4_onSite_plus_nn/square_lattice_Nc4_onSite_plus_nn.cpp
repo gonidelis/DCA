@@ -40,6 +40,8 @@
 #include "dca/util/git_version.hpp"
 #include "dca/util/modules.hpp"
 
+#include "hpx/hpx_main.hpp"
+
 dca::testing::DcaMpiTestEnvironment* dca_test_env;
 
 TEST(squareLattice_Nc4onSite_plus_nn, Self_Energy) {

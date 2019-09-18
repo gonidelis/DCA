@@ -21,8 +21,9 @@
 #include "dca/config/rng.hpp"            // defines RandomNumberGenerator
 #include "dca/config/walker_device.hpp"  // defines walker_device
 
-#include "dca/parallel/stdthread/stdthread.hpp"
-using Threading = dca::parallel::stdthread;
+//#include "dca/parallel/stdthread/stdthread.hpp"
+#include "dca/parallel/hpx/hpxthread.hpp"
+using Threading = dca::parallel::hpxthread;
 
 #include "dca/phys/dca_step/cluster_solver/cluster_solver_name.hpp"
 constexpr dca::phys::solver::ClusterSolverName solver_name = @DCA_CLUSTER_SOLVER_NAME@;

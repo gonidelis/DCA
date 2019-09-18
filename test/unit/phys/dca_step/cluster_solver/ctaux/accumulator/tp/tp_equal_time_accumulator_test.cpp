@@ -18,6 +18,8 @@
 #include "test/unit/phys/dca_step/cluster_solver/shared_tools/accumulation/accumulation_test.hpp"
 #include "test/unit/phys/dca_step/cluster_solver/test_setup.hpp"
 
+#include "hpx/hpx_main.hpp"
+
 constexpr char input_file[] =
     DCA_SOURCE_DIR "/test/unit/phys/dca_step/cluster_solver/ctaux/accumulator/tp/input.json";
 

@@ -10,55 +10,35 @@
 //
 // This file tests stdthread.hpp.
 
-#include "dca/parallel/hpx/hpx_thread_pool/thread_pool.hpp"
 #include "dca/parallel/hpx/hpxthread.hpp"
-#include <hpx/hpx_init.hpp>
+#include <hpx/hpx_main.hpp>
 #include "gtest/gtest.h"
 
 using Threading = dca::parallel::hpxthread;
 
 TEST(HpxthreadTest, Execute) {
-//auto routine = [](const int id, const int num_threads, std::vector<int>& vec) {
-//    EXPECT_EQ(4, num_threads);
-//
-//    vec[id] += id;
-//};
+auto routine = [](const int id, const int num_threads, std::vector<int>& vec) {
+    EXPECT_EQ(4, num_threads);
+
+    vec[id] += id;
+};
 Threading threading;
-dca::parallel::HPXThreadPool pool(1);
-//const int num_threads = 4;
-//std::vector<int> vec{0, 10, 20, 30};
-//std::vector<int> vec_check{0, 11, 22, 33};
-//
-//threading.execute(num_threads, routine, std::ref(vec));
-//
-//EXPECT_EQ(vec_check, vec);
+
+const int num_threads = 4;
+std::vector<int> vec{0, 10, 20, 30};
+std::vector<int> vec_check{0, 11, 22, 33};
+
+threading.execute(num_threads, routine, std::ref(vec));
+
+EXPECT_EQ(vec_check, vec);
 }
 
-int hpx_main(int argc, char *argv[]) {
-    ::testing::InitGoogleTest(&argc, argv);
-    //
-    int result = RUN_ALL_TESTS();
-    hpx::finalize();
-    return result;
+TEST(NoThreadingTest, SumReduction) {
+auto routine = [](const int id, const int /*num_threads*/) { return id * id; };
+
+dca::parallel::hpxthread threading;
+const int n_threads = 3;
+const int result = threading.sumReduction(n_threads, routine);
+
+EXPECT_EQ(4 + 1, result);
 }
-
-int main(int argc, char* argv[])
-{
-    // We force this test to use several threads by default.
-    std::vector<std::string> const cfg = {
-            "hpx.os_threads=all"
-    };
-
-    // Initialize and run HPX
-    return hpx::init(argc, argv, cfg);
-}
-
-//TEST(NoThreadingTest, SumReduction) {
-//auto routine = [](const int id, const int /*num_threads*/) { return id * id; };
-//
-//dca::parallel::hpxthread threading;
-//const int n_threads = 3;
-//const int result = threading.sumReduction(n_threads, routine);
-//
-//EXPECT_EQ(4 + 1, result);
-//}

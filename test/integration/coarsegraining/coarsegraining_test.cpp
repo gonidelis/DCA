@@ -46,7 +46,8 @@
 #include "dca/io/hdf5/hdf5_writer.hpp"
 
 #include "hpx/hpx_main.hpp"
-
+#include "hpx/assertion.hpp"
+#include "hpx/runtime/threads/thread_data.hpp"
 // Set to true to dump the result in an hdf5 file.
 constexpr bool write_G_r_w = false;
 
@@ -80,7 +81,7 @@ void computeMockSigma(SigmaType& Sigma);
 
 void performTest(const bool test_dca_plus) {
   static Concurrency concurrency(0, nullptr);
-
+//HPX_ASSERT(hpx::threads::get_self_ptr() != nullptr);
   Parameters parameters(dca::util::GitVersion::string(), concurrency);
   parameters.read_input_and_broadcast<dca::io::JSONReader>(input);
 
@@ -90,10 +91,10 @@ void performTest(const bool test_dca_plus) {
     parameters.update_domains();
     model_initialized = true;
   }
-
+//HPX_ASSERT(hpx::threads::get_self_ptr() != nullptr);
   Data data(parameters);
   data.initialize();
-
+//HPX_ASSERT(hpx::threads::get_self_ptr() != nullptr);
   Coarsegraining cluster_mapping_obj(parameters);
 
   if (test_dca_plus) {

@@ -1,11 +1,13 @@
 dca_add_gtest(dca_sp_DCA+_mpi_test
   EXTENSIVE
+  HPX
   MPI MPI_NUMPROC 8
   INCLUDE_DIRS ${DCA_INCLUDE_DIRS}
   LIBS ${DCA_LIBS})
 
 dca_add_gtest(dca_sp_DCA+_mpi_cuda_test
   EXTENSIVE
+  HPX
   MPI MPI_NUMPROC 8
   CUDA
   INCLUDE_DIRS ${DCA_INCLUDE_DIRS}
@@ -13,6 +15,7 @@ dca_add_gtest(dca_sp_DCA+_mpi_cuda_test
 
 dca_add_gtest(dca_sp_DCA+_thread_test
   GTEST_MAIN
+  HPX
   EXTENSIVE
   INCLUDE_DIRS ${DCA_INCLUDE_DIRS}
   LIBS ${DCA_LIBS})

@@ -26,6 +26,8 @@
 #include "dca/phys/models/tight_binding_model.hpp"
 #include "dca/phys/parameters/model_parameters.hpp"
 
+#include "hpx/hpx_main.hpp"
+
 using namespace dca;
 
 class ComputeFreeGreensFunctionTest : public ::testing::Test {

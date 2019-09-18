@@ -16,7 +16,7 @@
 #include "dca/math/statistical_testing/function_cut.hpp"
 #include "dca/math/statistical_testing/statistical_testing.hpp"
 #include "dca/math/random/std_random_wrapper.hpp"
-#include "dca/parallel/stdthread/stdthread.hpp"
+//#include "dca/parallel/stdthread/stdthread.hpp"
 #include "dca/phys/dca_data/dca_data.hpp"
 #include "dca/phys/dca_step/cluster_solver/stdthread_qmci/stdthread_qmci_cluster_solver.hpp"
 #include "dca/phys/dca_step/cluster_solver/ss_ct_hyb/ss_ct_hyb_cluster_solver.hpp"
@@ -28,6 +28,8 @@
 #include "dca/util/git_version.hpp"
 #include "dca/util/modules.hpp"
 
+#include "dca/parallel/hpx/hpxthread.hpp"
+#include <hpx/hpx_main.hpp>
 // needed only if solver output is written
 //#include "dca/phys/dca_loop/dca_loop_data.hpp"
 
@@ -64,7 +66,7 @@ TEST(Ni0, GS) {
   using Rng = dca::math::random::StdRandomWrapper<std::ranlux48_base>;
   using TestParameters =
       dca::phys::params::Parameters<dca::testing::DcaMpiTestEnvironment::ConcurrencyType,
-                                    dca::parallel::stdthread, dca::profiling::NullProfiler, Model,
+                                    dca::parallel::hpxthread, dca::profiling::NullProfiler, Model,
                                     Rng, dca::phys::solver::SS_CT_HYB>;
   using Data = dca::phys::DcaData<TestParameters>;
   using ImpuritySolver = dca::phys::solver::StdThreadQmciClusterSolver<

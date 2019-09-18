@@ -21,6 +21,8 @@
 
 #include "gtest/gtest.h"
 
+#include "hpx/hpx_main.hpp"
+
 #include "dca/function/util/difference.hpp"
 #include "test/unit/phys/dca_step/cluster_solver/shared_tools/accumulation/accumulation_test.hpp"
 #include "test/unit/phys/dca_step/cluster_solver/test_setup.hpp"

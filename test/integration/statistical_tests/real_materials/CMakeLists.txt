@@ -6,6 +6,7 @@
 
 dca_add_gtest(NiO_stattest
     STOCHASTIC
+    HPX
     # Run with more ranks for better error detection.
     MPI MPI_NUMPROC 1
     INCLUDE_DIRS ${DCA_INCLUDE_DIRS};${PROJECT_SOURCE_DIR}

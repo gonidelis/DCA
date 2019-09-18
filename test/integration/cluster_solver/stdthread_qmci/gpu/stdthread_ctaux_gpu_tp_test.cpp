@@ -30,12 +30,15 @@
 #include "dca/phys/models/analytic_hamiltonians/square_lattice.hpp"
 #include "dca/phys/models/tight_binding_model.hpp"
 #include "dca/parallel/no_concurrency/no_concurrency.hpp"
-#include "dca/parallel/stdthread/stdthread.hpp"
+//#include "dca/parallel/stdthread/stdthread.hpp"
 #include "dca/phys/parameters/parameters.hpp"
 #include "dca/profiling/null_profiler.hpp"
 #include "dca/testing/minimalist_printer.hpp"
 #include "dca/util/git_version.hpp"
 #include "dca/util/modules.hpp"
+
+#include "dca/parallel/hpx/hpxthread.hpp"
+#include <hpx/hpx_main.hpp>
 
 const std::string input_dir = DCA_SOURCE_DIR "/test/integration/cluster_solver/stdthread_qmci/gpu/";
 
@@ -43,7 +46,7 @@ using Concurrency = dca::parallel::NoConcurrency;
 using RngType = dca::math::random::StdRandomWrapper<std::mt19937_64>;
 using Lattice = dca::phys::models::square_lattice<dca::phys::domains::D4>;
 using Model = dca::phys::models::TightBindingModel<Lattice>;
-using Threading = dca::parallel::stdthread;
+using Threading = dca::parallel::hpxthread;
 using Parameters = dca::phys::params::Parameters<Concurrency, Threading, dca::profiling::NullProfiler,
                                                  Model, RngType, dca::phys::solver::CT_AUX>;
 using Data = dca::phys::DcaData<Parameters>;

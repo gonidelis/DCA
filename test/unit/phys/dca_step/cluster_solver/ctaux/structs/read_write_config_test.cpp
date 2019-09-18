@@ -18,6 +18,8 @@
 #include "dca/phys/dca_step/cluster_solver/ctaux/structs/cv.hpp"
 #include "test/unit/phys/dca_step/cluster_solver/test_setup.hpp"
 
+#include "hpx/hpx_main.hpp"
+
 constexpr char input_name[] =
     DCA_SOURCE_DIR "/test/unit/phys/dca_step/cluster_solver/ctaux/structs/input.json";
 

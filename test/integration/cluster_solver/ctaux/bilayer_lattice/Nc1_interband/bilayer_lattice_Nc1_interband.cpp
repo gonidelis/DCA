@@ -40,6 +40,8 @@
 #include "dca/util/git_version.hpp"
 #include "dca/util/modules.hpp"
 
+#include "hpx/hpx_main.hpp"
+
 dca::testing::DcaMpiTestEnvironment* dca_test_env;
 
 TEST(bilayerLattice_Nc1_interband, Self_Energy) {

@@ -42,6 +42,8 @@
 #include "dca/util/git_version.hpp"
 #include "dca/util/modules.hpp"
 
+#include "hpx/hpx_main.hpp"
+
 dca::testing::DcaMpiTestEnvironment* dca_test_env;
 
 TEST(dca_sp_DCAplus_mpi, Self_energy) {
