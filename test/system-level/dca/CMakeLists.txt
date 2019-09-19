@@ -1,7 +1,7 @@
 dca_add_gtest(dca_sp_DCA+_mpi_test
   EXTENSIVE
   HPX
-  MPI MPI_NUMPROC 8
+  MPI MPI_NUMPROC 4
   INCLUDE_DIRS ${DCA_INCLUDE_DIRS}
   LIBS ${DCA_LIBS})
 
