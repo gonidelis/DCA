@@ -11,7 +11,7 @@ dca_add_gtest(coarsegraining_test
         EXTENSIVE
         GTEST_MAIN
         HPX
-        MPI MPI_NUMPROC 2
+        MPI MPI_NUMPROC 1
         INCLUDE_DIRS ${DCA_INCLUDE_DIRS}
         LIBS         ${DCA_LIBS}
         )
