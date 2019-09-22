@@ -20,8 +20,10 @@ list(APPEND DCA_EXTERNAL_LIBS ${LAPACK_LIBRARIES})
 
 ################################################################################
 # HDF5
-# Find HDF5 by looking for a CMake configuration file (hdf5-1.10.x).
-find_package(HDF5 COMPONENTS C CXX NO_MODULE QUIET)
+if(NOT MSVC)
+  # Find HDF5 by looking for a CMake configuration file (hdf5-1.10.x).
+  find_package(HDF5 COMPONENTS C CXX NO_MODULE QUIET)
+endif()
 if (NOT HDF5_FOUND)
   # Fall back to a search for a FindHDF5.cmake file and execute it.
   find_package(HDF5 REQUIRED COMPONENTS C CXX)

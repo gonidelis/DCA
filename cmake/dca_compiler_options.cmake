@@ -18,17 +18,31 @@
 # unset(CMAKE_REQUIRED_FLAGS)
 
 # Warnings
-set(DCA_WARNINGS -Wall -Wextra -Wpedantic -Wno-sign-compare -Wno-dangling-else)
+if(NOT MSVC)
+  set(DCA_WARNINGS -Wall -Wextra -Wpedantic -Wno-sign-compare -Wno-dangling-else)
 
-# Languange standard
-set(DCA_STD_FLAG -std=c++14)
+  # Languange standard
+  set(DCA_STD_FLAG -std=c++14)
+else()
+  add_compile_options(
+    -D_USE_MATH_DEFINES
+    -D_SILENCE_TR1_NAMESPACE_DEPRECATION_WARNING
+    -D_CRT_SECURE_NO_WARNINGS
+    -D__PRETTY_FUNCTION__=__FUNCTION__
+    -wd4101 -wd4244 -wd4251 -wd4267)
+
+  # Languange standard
+  set(DCA_STD_FLAG -std:c++14)
+endif()
 
 # Set C and CXX flags.
 add_compile_options(${DCA_WARNINGS})
 add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:${DCA_STD_FLAG}>")
 
 # Add support for multithreading with the Pthread library.
-add_compile_options("-pthread")
+if(NOT MSVC)
+  add_compile_options("-pthread")
+endif()
 
 # Set NVCC flags.
 if (DCA_HAVE_CUDA)
