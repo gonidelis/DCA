@@ -70,7 +70,7 @@ bool JSON_character_mapper::is_white_space(JSON_character_class_type& nextClass)
   }
 }
 
-wchar_t JSON_character_mapper::get_escaped_character(std::wistream& inputStream) {
+wchar_t JSON_character_mapper::get_escaped_character(json_istream& inputStream) {
   wchar_t secondChar = inputStream.get();
 
   switch (secondChar) {

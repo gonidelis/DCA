@@ -34,26 +34,26 @@ class JSON_parser : public JSON_character_mapper, public JSON_mode_stack {
 public:
   JSON_parser();
 
-  bool execute(std::wistream& inputStream);
+  bool execute(json_istream& inputStream);
 
   context_type& get_JSON_tree();
 
 private:
-  std::pair<wchar_t, JSON_character_class_type> get_next_character_and_class(std::wistream& inputStream);
+  std::pair<json_char, JSON_character_class_type> get_next_character_and_class(json_istream& inputStream);
 
   void begin_entity(JSON_action_type& action);
   void end_entity(JSON_action_type& action);
 
   void record_entity(JSON_action_type& action);
 
-  void abort_parsing(wchar_t nextChar, JSON_character_class_type nextClass, JSON_state_type state,
+  void abort_parsing(json_char nextChar, JSON_character_class_type nextClass, JSON_state_type state,
                      JSON_action_type action);
 
   void setCommentState();
 
   void unloadBuffer();
 
-  void performAction(wchar_t nextChar, JSON_character_class_type nextClass, JSON_state_type state,
+  void performAction(json_char nextChar, JSON_character_class_type nextClass, JSON_state_type state,
                      JSON_action_type action);
 
 private:
@@ -137,7 +137,7 @@ void JSON_parser<context_type>::unloadBuffer() {
 }
 
 template <typename context_type>
-void JSON_parser<context_type>::performAction(wchar_t nextChar, JSON_character_class_type nextClass,
+void JSON_parser<context_type>::performAction(json_char nextChar, JSON_character_class_type nextClass,
                                               JSON_state_type state, JSON_action_type action) {
   switch (action) {
     case Consume:
@@ -284,7 +284,7 @@ void JSON_parser<context_type>::record_entity(JSON_action_type& action) {
 }
 
 template <typename context_type>
-void JSON_parser<context_type>::abort_parsing(wchar_t nextChar, JSON_character_class_type nextClass,
+void JSON_parser<context_type>::abort_parsing(json_char nextChar, JSON_character_class_type nextClass,
                                               JSON_state_type state, JSON_action_type action) {
   std::cout << "JsonParser::performAction was sent abort from JSON_parser : \n"
             << "  nextChar   = '" << ((char)wctob(nextChar)) << "'\n"
@@ -299,10 +299,10 @@ void JSON_parser<context_type>::abort_parsing(wchar_t nextChar, JSON_character_c
 }
 
 template <typename context_type>
-bool JSON_parser<context_type>::execute(std::wistream& inputStream) {
-  std::pair<wchar_t, JSON_character_class_type> next = get_next_character_and_class(inputStream);
+bool JSON_parser<context_type>::execute(json_istream& inputStream) {
+  std::pair<json_char, JSON_character_class_type> next = get_next_character_and_class(inputStream);
 
-  wchar_t& nextChar(next.first);
+  json_char& nextChar(next.first);
   JSON_character_class_type& nextClass(next.second);
 
   state_and_action_pair pair = JSON_translation_table::get_state_and_action_pair(state, nextClass);
@@ -325,11 +325,11 @@ bool JSON_parser<context_type>::execute(std::wistream& inputStream) {
 }
 
 template <typename context_type>
-std::pair<wchar_t, JSON_character_class_type> JSON_parser<context_type>::get_next_character_and_class(
-    std::wistream& inputStream) {
-  std::pair<wchar_t, JSON_character_class_type> result;
+std::pair<json_char, JSON_character_class_type> JSON_parser<context_type>::get_next_character_and_class(
+    json_istream& inputStream) {
+  std::pair<json_char, JSON_character_class_type> result;
 
-  wchar_t& nextChar = result.first;
+  json_char& nextChar = result.first;
   JSON_character_class_type& nextClass = result.second;
 
   do {
