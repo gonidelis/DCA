@@ -26,7 +26,7 @@ public:
   MPICollectiveMax() = default;
 
   template <typename Scalar>
-  void max(Scalar& value) const {
+  void (max)(Scalar& value) const {
     Scalar result;
 
     MPI_Allreduce(&value, &result, 1, MPITypeMap<Scalar>::value(),

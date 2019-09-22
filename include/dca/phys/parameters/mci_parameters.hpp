@@ -99,7 +99,7 @@ public:
 private:
   void generateRandomSeed() {
     std::random_device rd;
-    std::uniform_int_distribution<int> dist(0, std::numeric_limits<int>::max());
+    std::uniform_int_distribution<int> dist(0, (std::numeric_limits<int>::max)());
     seed_ = dist(rd);
   }
 
