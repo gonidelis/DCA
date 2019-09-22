@@ -11,6 +11,7 @@
 
 #include "dca/io/hdf5/hdf5_writer.hpp"
 
+#include <ciso646>
 #include <fstream>
 #include <stdexcept>
 

@@ -14,6 +14,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <iostream>
+#include <ciso646>
 
 namespace dca {
 namespace phys {

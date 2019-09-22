@@ -13,6 +13,7 @@
 
 #include <cassert>
 #include <cmath>
+#include <ciso646>
 
 #include "dca/math/util/vector_operations.hpp"
 
