@@ -15,7 +15,7 @@ module load magma
 export OLCF_MAGMA_ROOT="/gpfs/alpine/cph102/proj-shared/lib/magma-2.5.1-gcc8"
 module load netlib-lapack
 module load essl
-module load openblas/0.3.6-omp
+#module load openblas/0.3.6-omp
 module load spectrum-mpi/10.3.0.1-20190611
 
 export CC=mpicc
