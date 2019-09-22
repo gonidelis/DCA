@@ -36,7 +36,7 @@ public:
 
   vertex_singleton(const this_type& other_vertex_couple);
 
-  this_type& operator=(this_type& other_vertex_couple);
+//   this_type& operator=(this_type& other_vertex_couple);
 
   this_type& operator=(const this_type& other_vertex_couple);
 
