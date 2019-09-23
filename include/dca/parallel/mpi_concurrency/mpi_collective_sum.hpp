@@ -561,11 +561,11 @@ template <typename T>
 void MPICollectiveSum::sum(const T* in, T* out, std::size_t n, int root_id) const {
   // On summit large messages hangs if sizeof(floating point type) * message_size > 2^31-1.
   constexpr std::size_t max_size = dca::util::IsComplex<T>::value
-                                       ? 2 * (std::numeric_limits<int>::max() / sizeof(T))
-                                       : std::numeric_limits<int>::max() / sizeof(T);
+                                       ? 2 * ((std::numeric_limits<int>::max)() / sizeof(T))
+                                       : (std::numeric_limits<int>::max)() / sizeof(T);
 
   for (std::size_t start = 0; start < n; start += max_size) {
-    const int msg_size = std::min(n - start, max_size);
+    const int msg_size = (std::min)(n - start, max_size);
     if (root_id == -1) {
       MPI_Allreduce(in + start, out + start, msg_size, MPITypeMap<T>::value(), MPI_SUM,
                     MPIProcessorGrouping::get());

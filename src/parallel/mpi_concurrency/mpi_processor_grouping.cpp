@@ -12,7 +12,9 @@
 #include "dca/parallel/mpi_concurrency/mpi_processor_grouping.hpp"
 
 #include <iostream>
+#if !defined(_MSC_VER)
 #include <unistd.h>
+#endif
 
 #include "dca/parallel/mpi_concurrency/kernel_test.hpp"
 

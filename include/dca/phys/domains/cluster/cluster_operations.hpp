@@ -14,6 +14,7 @@
 #define DCA_PHYS_DOMAINS_CLUSTER_CLUSTER_OPERATIONS_HPP
 
 #include <cassert>
+#include <ciso646>
 #include <cmath>
 #include <utility>
 #include <vector>

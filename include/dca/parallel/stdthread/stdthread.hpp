@@ -38,8 +38,7 @@ public:
 
     // Fork.
     for (int id = 0; id < num_threads; ++id)
-      futures.emplace_back(
-          pool.enqueue(std::forward<F>(f), id, num_threads, std::forward<Args>(args)...));
+      futures.emplace_back(pool.enqueue(f, id, num_threads, args...));
     // Join.
     for (auto& future : futures)
       future.get();
@@ -60,8 +59,7 @@ public:
 
     // Spawn num_threads tasks.
     for (int id = 0; id < num_threads; ++id)
-      futures.emplace_back(
-          pool.enqueue(std::forward<F>(f), id, num_threads, std::forward<Args>(args)...));
+      futures.emplace_back(pool.enqueue(f, id, num_threads, args...));
     // Sum the result of the tasks.
     ReturnType result = 0;
     for (auto& future : futures)

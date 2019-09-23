@@ -11,7 +11,9 @@
 #ifndef DCA_UTIL_PRINT_TYPE_HPP
 #define DCA_UTIL_PRINT_TYPE_HPP
 
+#if !defined(_MSC_VER)
 #include <cxxabi.h>
+#endif
 #include <memory>
 #include <sstream>
 #include <string>
@@ -23,9 +25,13 @@ namespace detail {
 // dca::util::detail::
 
 inline std::string demangle(std::string const& str, int& status) {
+#if !defined(_MSC_VER)
   std::unique_ptr<char, void (*)(void*)> dmgl(abi::__cxa_demangle(str.c_str(), 0, 0, &status),
                                               std::free);
   return (status == 0) ? dmgl.get() : str;
+#else
+  return str;
+#endif
 }
 
 }  // detail

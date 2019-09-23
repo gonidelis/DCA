@@ -12,6 +12,7 @@
 #ifndef DCA_IO_JSON_JSON_PARSER_WHATEVER_HPP
 #define DCA_IO_JSON_JSON_PARSER_WHATEVER_HPP
 
+#include <ciso646>
 #include <cstdlib>
 #include <cassert>
 #include <map>

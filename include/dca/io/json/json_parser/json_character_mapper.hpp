@@ -15,6 +15,16 @@
 #include <iostream>
 #include "dca/io/json/json_parser/json_enumerations.hpp"
 
+#if !defined(_MSC_VER)
+using json_istream = std::wistream;
+using json_ifstream = std::wifstream;
+using json_char = wchar_t;
+#else
+using json_istream = std::istream;
+using json_ifstream = std::ifstream;
+using json_char = char;
+#endif
+
 namespace dca {
 namespace io {
 // dca::io::
@@ -25,7 +35,7 @@ public:
 
   static bool is_white_space(JSON_character_class_type& nextClass);
 
-  static wchar_t get_escaped_character(std::wistream& inputStream);
+  static wchar_t get_escaped_character(json_istream& inputStream);
 
 private:
   static JSON_character_class_type ascii_class[128];

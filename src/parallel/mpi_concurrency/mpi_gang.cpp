@@ -11,6 +11,7 @@
 
 #include "dca/parallel/mpi_concurrency/mpi_gang.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 #include "dca/util/integer_division.hpp"
@@ -24,7 +25,7 @@ MPIGang::MPIGang(const dca::parallel::MPIProcessorGrouping& group, int min_size)
 
 
   const int n_gangs = group.get_size() / min_size;
-  const int gang_id = std::min(group.get_id() / min_size, n_gangs - 1);
+  const int gang_id = (std::min)(group.get_id() / min_size, n_gangs - 1);
 
   MPI_Comm_split(group.get(), gang_id, 0, &communicator_);
   MPI_Comm_size(communicator_, &size_);

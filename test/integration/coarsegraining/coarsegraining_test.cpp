@@ -53,7 +53,7 @@ constexpr bool write_G_r_w = false;
 
 const std::string input_dir = DCA_SOURCE_DIR "/test/integration/coarsegraining/";
 
-using Concurrency = dca::parallel::MPIConcurrency;
+using MPIConcurrency = dca::parallel::MPIConcurrency;
 using Model1 = dca::phys::models::TightBindingModel<
     dca::phys::models::singleband_chain<dca::phys::domains::no_symmetry<2>>>;
 using Model2 = dca::phys::models::TightBindingModel<
@@ -61,11 +61,11 @@ using Model2 = dca::phys::models::TightBindingModel<
 using Threading = dca::parallel::hpxthread;
 
 #ifdef UPDATE_BASELINE
-using Parameters = dca::phys::params::Parameters<Concurrency, Threading, dca::profiling::NullProfiler,
+using Parameters = dca::phys::params::Parameters<MPIConcurrency, Threading, dca::profiling::NullProfiler,
                                                  Model1, void, dca::phys::solver::CT_AUX>;
 const std::string input = input_dir + "input_singleband.json";
 #else
-using Parameters = dca::phys::params::Parameters<Concurrency, Threading, dca::profiling::NullProfiler,
+using Parameters = dca::phys::params::Parameters<MPIConcurrency, Threading, dca::profiling::NullProfiler,
                                                  Model2, void, dca::phys::solver::CT_AUX>;
 const std::string input = input_dir + "input_bilayer.json";
 #endif  // UPDATE_BASELINE
@@ -80,7 +80,7 @@ template <class SigmaType>
 void computeMockSigma(SigmaType& Sigma);
 
 void performTest(const bool test_dca_plus) {
-  static Concurrency concurrency(0, nullptr);
+  static MPIConcurrency concurrency(0, nullptr);
 //HPX_ASSERT(hpx::threads::get_self_ptr() != nullptr);
   Parameters parameters(dca::util::GitVersion::string(), concurrency);
   parameters.read_input_and_broadcast<dca::io::JSONReader>(input);
@@ -187,4 +187,11 @@ void computeMockSigma(SigmaType& Sigma) {
         for (int b = 0; b < BDmn::get_size(); ++b)
           Sigma(b, s, b, s, k, w) = sigma_val;
   }
+}
+
+#include "gtest/gtest.h"
+
+int main(int argc, char **argv) {
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }

@@ -9,19 +9,22 @@
 //
 // This file implements hpxthread.hpp.
 
+#include <iostream>
+
 #include "dca/parallel/hpx/hpxthread.hpp"
+#include "hpx/runtime/get_worker_thread_num.hpp"
 
 namespace dca {
-    namespace parallel {
+namespace parallel {
 
-        constexpr char hpxthread::parallel_type_str_[];
+constexpr char hpxthread::parallel_type_str_[];
 
-//        hpx::ostream& operator<<(hpx::ostream& o, const hpxthread& c) {
-//            o << '\n'
-//              << "threading type:" << c.parallel_type_str_ << '\n'
-//              << "number of std::threads:" << HPXThreadPool::get_instance().size();
-//            return o;
-//        }
+std::ostream& operator<<(std::ostream& o, const hpxthread& c) {
+  o << '\n'
+    << "threading type:" << c.parallel_type_str_ << '\n'
+    << "number of HPX worker threads:" << hpx::get_num_worker_threads();
+  return o;
+}
 
-    }  // parallel
-}  // dca
+}  // namespace parallel
+}  // namespace dca
