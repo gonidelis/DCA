@@ -13,5 +13,5 @@ dca_add_gtest(coarsegraining_test
         HPX
         MPI MPI_NUMPROC 1
         INCLUDE_DIRS ${DCA_INCLUDE_DIRS}
-        LIBS         ${DCA_LIBS}
+        LIBS         ${DCA_LIBS} $ENV{LAPACK_LIBRARIES}
         )
