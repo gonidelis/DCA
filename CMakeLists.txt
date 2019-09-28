@@ -159,7 +159,7 @@ if (DCA_HAVE_CUDA)
     ${DCA_CUDA_LIBS})
 endif()
 
-option(DCA_HAVE_HPX "Enable HPX support." OFF)
+option(DCA_HAVE_HPX "Enable HPX support." ON)
 if (DCA_HAVE_HPX)
   include(dca_hpx)
   dca_setup_hpx()

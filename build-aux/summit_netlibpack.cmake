@@ -5,12 +5,16 @@
 # Prevent CMake from searching for BLAS and LAPACK libraries.
 # Paths to IBM's ESSL (preferred) and NETLIB-LAPACK will be set manually.
 set(DCA_HAVE_LAPACK TRUE CACHE INTERNAL "If set to TRUE, prevents CMake from searching for LAPACK.")
-# To give ESSL precedence it needs to be specified before NETLIB.
-set(LAPACK_LIBRARIES $ENV{OLCF_NETLIB_LAPACK_ROOT}/lib64/liblapack.so;$ENV{OLCF_NETLIB_LAPACK_ROOT}/lib64/libblas.so CACHE FILEPATH "Libraries to link against to use LAPACK.")
-#$ENV{OLCF_ESSL_ROOT}/lib64/libessl.so;
-# Set the include directory for the ESSL library.
-#set(DCA_ESSL_INCLUDES $ENV{OLCF_ESSL_ROOT}/include CACHE PATH "Path to ESSL include directory.")
-#mark_as_advanced(DCA_ESSL_INCLUDES)
+option(DCA_WITH_ESSL "Enable essl support." OFF)
+if (DCA_WITH_ESSL)
+    # To give ESSL precedence it needs to be specified before NETLIB.
+    set(LAPACK_LIBRARIES $ENV{OLCF_ESSL_ROOT}/lib64/libessl.so;$ENV{OLCF_NETLIB_LAPACK_ROOT}/lib64/liblapack.so;$ENV{OLCF_NETLIB_LAPACK_ROOT}/lib64/libblas.so CACHE FILEPATH "Libraries to link against to use LAPACK.")
+    # Set the include directory for the ESSL library.
+    set(DCA_ESSL_INCLUDES $ENV{OLCF_ESSL_ROOT}/include CACHE PATH "Path to ESSL include directory.")
+    mark_as_advanced(DCA_ESSL_INCLUDES)
+else()
+    set(LAPACK_LIBRARIES $ENV{OLCF_NETLIB_LAPACK_ROOT}/lib64/liblapack.so;$ENV{OLCF_NETLIB_LAPACK_ROOT}/lib64/libblas.so CACHE FILEPATH "Libraries to link against to use LAPACK.")
+endif()
 
 # Use jsrun for executing the tests.
 set(TEST_RUNNER "jsrun" CACHE STRING "Command for executing (MPI) programs.")
@@ -41,3 +45,11 @@ set(MAGMA_DIR $ENV{OLCF_MAGMA_ROOT} CACHE PATH
 # FFTW paths.
 set(FFTW_INCLUDE_DIR $ENV{OLCF_FFTW_ROOT}/include CACHE PATH "Path to fftw3.h.")
 set(FFTW_LIBRARY $ENV{OLCF_FFTW_ROOT}/lib/libfftw3.so CACHE FILEPATH "The FFTW3(-compatible) library.")
+
+set(CMAKE_BUILD_TYPE Debug CACHE STRING "CMake build type")
+set(DCA_HAVE_HPX ON CACHE INTERNAL "dca have hpx")
+set(HPX_DIR /gpfs/alpine/proj-shared/cph102/weile/dev/install/hpx_Debug/lib64/cmake/HPX CACHE FILEPATH "Path to HPX install")
+set(CMAKE_PREFIX_PATH /gpfs/alpine/proj-shared/cph102/weile/dev/src/hpx CACHE FILEPATH "Path to HPX source")
+set(HPX_GIT_COMMIT 1 CACHE INTERNAL "Show hpx commit")
+set(DCA_WITH_TESTS_FAST ON CACHE INTERNAL "turn on DCA_WITH_TESTS_FAST")
+set(DCA_WITH_TESTS_EXTENSIVE ON CACHE INTERNAL "turn on DCA_WITH_TESTS_EXTENSIVE")

@@ -18,6 +18,6 @@ module load essl
 export CC=mpicc
 export CXX=mpicxx
 export CFLAGS=-fPIC
-export CXXFLAGS="-fPIC -mcpu=power9 -mtune=power9 -ffast-math"
+export CXXFLAGS="-fPIC -mcpu=power9 -mtune=power9 -ffast-math -std=c++14"
 export LDFLAGS=-dynamic
 export LDCXXFLAGS="$LDFLAGS"
