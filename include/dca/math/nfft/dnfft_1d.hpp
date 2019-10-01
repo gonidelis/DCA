@@ -35,6 +35,8 @@
 #include "dca/math/nfft/window_functions/gaussian_window_function.hpp"
 #include "dca/math/nfft/window_functions/kaiser_bessel_function.hpp"
 
+#include "dca/parallel/hpx/hpxthread.hpp"
+
 namespace dca {
 namespace math {
 namespace nfft {
@@ -400,7 +402,7 @@ void Dnfft1D<ScalarType, WDmn, PDmn, oversampling, mode>::transformFTauToFW(
   // as such does not meet the requirements of "Erasable" required by std::vector.
   std::vector<std::complex<double>> f_out(n / 2 + 1);
 
-  static std::mutex fftw_mutex;
+  static dca::parallel::thread_traits::mutex_type fftw_mutex;
   fftw_mutex.lock();
   // See http://www.fftw.org/fftw3_doc/Complex-numbers.html for why the cast should be safe.
   fftw_plan plan = fftw_plan_dft_r2c_1d(

@@ -98,9 +98,9 @@ private:
 
   std::queue<StdThreadAccumulatorType*> accumulators_queue_;
 
-  std::mutex mutex_merge_;
-  std::mutex mutex_queue_;
-  std::condition_variable queue_insertion_;
+  dca::parallel::thread_traits::mutex_type mutex_merge_;
+  dca::parallel::thread_traits::mutex_type mutex_queue_;
+  dca::parallel::thread_traits::condition_variable_type queue_insertion_;
 
   std::vector<dca::io::Buffer> config_dump_;
 };
@@ -190,7 +190,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::integrate() {
 
   try {
     for (auto& future : futures)
-      future.get();
+      future.wait();
   }
   catch (std::exception& err) {
     print_metadata();
@@ -250,7 +250,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalker(int id) {
 
             // Wait for available accumulators.
             {
-              std::unique_lock<std::mutex> lock(mutex_queue_);
+              std::unique_lock<dca::parallel::thread_traits::mutex_type> lock(mutex_queue_);
               queue_insertion_.wait(lock, [&]() { return !accumulators_queue_.empty(); });
               acc_ptr = accumulators_queue_.front();
               accumulators_queue_.pop();
@@ -270,7 +270,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalker(int id) {
 
   // If this is the last walker signal to all the accumulators to exit the loop.
   if (++walk_finished_ == parameters_.get_walkers()) {
-    std::lock_guard<std::mutex> lock(mutex_queue_);
+    dca::parallel::thread_traits::scoped_lock lock(mutex_queue_);
     while (!accumulators_queue_.empty()) {
       accumulators_queue_.front()->notifyDone();
       accumulators_queue_.pop();
@@ -361,7 +361,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startAccumulator(int id) {
   try {
     while (true) {
       {
-        std::lock_guard<std::mutex> lock(mutex_queue_);
+        dca::parallel::thread_traits::scoped_lock lock(mutex_queue_);
         if (walk_finished_ == parameters_.get_walkers())
           break;
         accumulators_queue_.push(&accumulator_obj);
@@ -389,7 +389,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startAccumulator(int id) {
   }
 
   {
-    std::lock_guard<std::mutex> lock(mutex_merge_);
+    dca::parallel::thread_traits::scoped_lock lock(mutex_merge_);
     accumulator_obj.sumTo(QmciSolver::accumulator_);
   }
 
@@ -442,7 +442,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalkerAndAccumulator(int id) {
 
   ++walk_finished_;
   {
-    std::lock_guard<std::mutex> lock(mutex_merge_);
+    dca::parallel::thread_traits::scoped_lock lock(mutex_merge_);
     accumulator_obj.sumTo(QmciSolver::accumulator_);
   }
 

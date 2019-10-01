@@ -127,7 +127,6 @@ set(DCA_LIBS
   tetrahedron_mesh
   ${DCA_RNG_LIBRARY}
   parallel_hpxthread
-  parallel_stdthread
   parallel_util
   dca_algorithms
   json

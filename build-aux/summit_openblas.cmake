@@ -29,7 +29,7 @@ set(SMPIARGS_FLAG_NOMPI "--smpiargs=none" CACHE STRING
 set(SMPIARGS_FLAG_MPI "" CACHE STRING "Spectrum MPI argument list flag for MPI tests.")
 
 # Enable the GPU support.
-#option(DCA_WITH_CUDA "Enable GPU support." ON)
+option(DCA_WITH_CUDA "Enable GPU support." ON)
 
 # Compile for Volta compute architecture.
 set(CUDA_GPU_ARCH "sm_70" CACHE STRING "Name of the *real* architecture to build for.")

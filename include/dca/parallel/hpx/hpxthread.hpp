@@ -20,11 +20,37 @@
 
 #include "hpx/include/async.hpp"
 #include "hpx/include/future.hpp"
+#include <hpx/lcos/local/spinlock.hpp>
+#include <hpx/lcos/local/condition_variable.hpp>
 
 namespace dca {
 namespace parallel {
 
-class hpxthread {
+    struct thread_traits {
+        //template <typename T>
+        //using promise_type              = hpx::lcos::promise<T>;
+        //template <typename T>
+        //using future_type               = hpx::lcos::future<T>;
+        using mutex_type                = hpx::lcos::local::mutex;
+        using condition_variable_type   = hpx::lcos::local::condition_variable;
+        using scoped_lock               = std::lock_guard<mutex_type>;
+        using unique_lock               = std::unique_lock<mutex_type>;
+        //
+//        static void sleep_for(hpx::util::steady_duration const& rel_time) {
+//            hpx::this_thread::sleep_for(rel_time);
+//        }
+//        //
+//        static void yield() {
+//            hpx::this_thread::yield();
+//        }
+//        //
+//        static std::uint64_t default_threadcount() {
+//            return hpx::get_num_worker_threads();
+//        }
+    };
+
+
+    class hpxthread {
 public:
   hpxthread() = default;
 
@@ -40,7 +66,7 @@ public:
       futures.emplace_back(hpx::async(f, id, num_threads, args...));
     // Join.
     for (auto& future : futures)
-      future.get();
+      future.wait();
   }
 
   // Returns the sum of the return values of f(id, num_tasks, args...) for each integer value of id
@@ -61,7 +87,7 @@ public:
     // Sum the result of the tasks.
     ReturnType result = 0;
     for (auto& future : futures)
-      result += future.get();
+      result += future.wait();
 
     return result;
   }
