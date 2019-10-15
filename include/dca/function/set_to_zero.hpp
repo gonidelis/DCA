@@ -18,6 +18,7 @@
 #ifndef DCA_FUNCTION_SET_TO_ZERO_HPP
 #define DCA_FUNCTION_SET_TO_ZERO_HPP
 
+#include <ciso646>
 #include <complex>
 #include <type_traits>
 

@@ -7,7 +7,7 @@ dca_add_gtest(function_library_test
   GTEST_MAIN
   LIBS function)
 
-if (function_library_test)
+if (function_library_test AND NOT MSVC)
   # We want to test self-assignment and self-move.
   target_compile_options(function_library_test PRIVATE -Wno-self-assign-overloaded -Wno-self-move)
 endif()

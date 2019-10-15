@@ -34,11 +34,11 @@ public:
     t_end_val = t_end;
   }
 
-  this_type& operator=(this_type& other_vertex) {
-    t_start_val = other_vertex.t_start();
-    t_end_val = other_vertex.t_end();
-    return *this;
-  }
+//   this_type& operator=(this_type& other_vertex) {
+//     t_start_val = other_vertex.t_start();
+//     t_end_val = other_vertex.t_end();
+//     return *this;
+//   }
   this_type& operator=(const this_type& other_vertex) {
     t_start_val = other_vertex.t_start();
     t_end_val = other_vertex.t_end();

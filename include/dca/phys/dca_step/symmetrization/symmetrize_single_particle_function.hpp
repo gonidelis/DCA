@@ -37,6 +37,7 @@
 #ifndef DCA_PHYS_DCA_STEP_SYMMETRIZATION_SYMMETRIZE_SINGLE_PARTICLE_FUNCTION_HPP
 #define DCA_PHYS_DCA_STEP_SYMMETRIZATION_SYMMETRIZE_SINGLE_PARTICLE_FUNCTION_HPP
 
+#include <algorithm>
 #include <cmath>
 #include <complex>
 #include <iostream>
@@ -373,7 +374,7 @@ void symmetrize_single_particle_function::execute(func::function<scalartype, t>&
 
   double max = 0;
   for (int i = 0; i < t::dmn_size() / 2; i++) {
-    max = std::max(max, abs((f(i) + f(i + shift)) / 2.));
+    max = (std::max)(max, abs((f(i) + f(i + shift)) / 2.));
 
     scalartype tmp = (f(i) - f(i + shift)) / 2.;
 
@@ -408,7 +409,7 @@ void symmetrize_single_particle_function::executeTimeOrFreq(
 
   double max = 0;
   for (int ind = 0; ind < f.size(); ++ind) {
-    max = std::max(max, std::abs(f(ind) - f_new(ind)));
+    max = (std::max)(max, std::abs(f(ind) - f_new(ind)));
   }
 
   f = std::move(f_new);
@@ -421,7 +422,7 @@ template <typename scalartype>
 void symmetrize_single_particle_function::execute(func::function<scalartype, w>& f, bool do_diff) {
   double max = 0;
   for (int i = 0; i < w::dmn_size() / 2; i++) {
-    max = std::max(max, abs((f(i) - std::conj(f(w::dmn_size() - i - 1))) / 2.));
+    max = (std::max)(max, abs((f(i) - std::conj(f(w::dmn_size() - i - 1))) / 2.));
 
     scalartype tmp = (f(i) + std::conj(f(w::dmn_size() - i - 1))) / 2.;
 
@@ -460,7 +461,7 @@ void symmetrize_single_particle_function::executeTimeOrFreq(
 
   double max = 0;
   for (int ind = 0; ind < f.size(); ++ind) {
-    max = std::max(max, abs(f(ind) - f_new(ind)));
+    max = (std::max)(max, abs(f(ind) - f_new(ind)));
   }
 
   f = std::move(f_new);
@@ -482,7 +483,7 @@ void symmetrize_single_particle_function::execute(func::function<scalartype, w_V
                                                   bool do_diff) {
   double max = 0;
   for (int i = 0; i < w_VERTEX::dmn_size() / 2; i++) {
-    max = std::max(max, abs((f(i) - std::conj(f(w_VERTEX::dmn_size() - i - 1))) / 2.));
+    max = (std::max)(max, abs((f(i) - std::conj(f(w_VERTEX::dmn_size() - i - 1))) / 2.));
 
     scalartype tmp = (f(i) + std::conj(f(w_VERTEX::dmn_size() - i - 1))) / 2.;
 
@@ -499,7 +500,7 @@ void symmetrize_single_particle_function::execute(func::function<scalartype, w_V
                                                   bool do_diff) {
   double max = 0;
   for (int i = 0; i < w_VERTEX_EXTENDED::dmn_size() / 2; i++) {
-    max = std::max(max, abs((f(i) - std::conj(f(w_VERTEX_EXTENDED::dmn_size() - i - 1))) / 2.));
+    max = (std::max)(max, abs((f(i) - std::conj(f(w_VERTEX_EXTENDED::dmn_size() - i - 1))) / 2.));
 
     scalartype tmp = (f(i) + std::conj(f(w_VERTEX_EXTENDED::dmn_size() - i - 1))) / 2.;
 
@@ -546,7 +547,7 @@ void symmetrize_single_particle_function::executeCluster(
 
   double max = 0;
   for (int ind = 0; ind < f.size(); ++ind) {
-    max = std::max(max, std::abs(f(ind) - f_new(ind)));
+    max = (std::max)(max, std::abs(f(ind) - f_new(ind)));
 
     f(ind) = f_new(ind);
   }
@@ -599,7 +600,7 @@ void symmetrize_single_particle_function::executeCluster(
 
   double max = 0;
   for (int ind = 0; ind < f.size(); ++ind) {
-    max = std::max(max, std::abs(f(ind) - f_new(ind)));
+    max = (std::max)(max, std::abs(f(ind) - f_new(ind)));
 
     f(ind) = f_new(ind);
   }
@@ -643,7 +644,7 @@ void symmetrize_single_particle_function::executeCluster(
 
   double max = 0;
   for (int ind = 0; ind < f.size(); ++ind) {
-    max = std::max(max, abs(f(ind) - f_new(ind)));
+    max = (std::max)(max, abs(f(ind) - f_new(ind)));
 
     f(ind) = f_new(ind);
   }
@@ -693,7 +694,7 @@ void symmetrize_single_particle_function::executeCluster(
 
   double max = 0;
   for (int ind = 0; ind < f.size(); ++ind) {
-    max = std::max(max, std::abs(f(ind) - f_new(ind)));
+    max = (std::max)(max, std::abs(f(ind) - f_new(ind)));
 
     f(ind) = f_new(ind);
   }

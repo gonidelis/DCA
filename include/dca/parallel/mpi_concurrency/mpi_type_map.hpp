@@ -103,6 +103,15 @@ struct MPITypeMap<std::complex<double>> {
   }
 };
 
+#if defined(_MSC_VER)
+template <>
+struct MPITypeMap<unsigned long int> {
+  static MPI_Datatype value() {
+    return MPI_DOUBLE_COMPLEX;
+  }
+};
+#endif
+
 }  // namespace parallel
 }  // namespace dca
 

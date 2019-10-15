@@ -26,7 +26,7 @@ public:
   MPICollectiveMin() = default;
 
   template <typename Scalar>
-  void min(Scalar& value) const {
+  void (min)(Scalar& value) const {
     Scalar result;
 
     MPI_Allreduce(&value, &result, 1, MPITypeMap<Scalar>::value(),

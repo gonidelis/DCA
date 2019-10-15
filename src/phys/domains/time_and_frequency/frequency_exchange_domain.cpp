@@ -10,6 +10,7 @@
 // This files implements the methods of frequency_exchange_domain.hpp.
 
 #include <stdexcept>
+#include <algorithm>
 
 #include "dca/phys/domains/time_and_frequency/frequency_exchange_domain.hpp"
 
@@ -42,7 +43,7 @@ void FrequencyExchangeDomain::initialize(const bool compute_all_transfers,
   // Compute the extension size.
   extension_size_ = 0;
   for (auto el : elements_)
-    extension_size_ = std::max(extension_size_, std::abs(el));
+    extension_size_ = (std::max)(extension_size_, std::abs(el));
 
   initialized_ = true;
 }

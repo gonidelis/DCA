@@ -150,7 +150,7 @@ function(dca_add_gtest name)
              COMMAND ${TEST_RUNNER} ${MPIEXEC_NUMPROC_FLAG} ${DCA_ADD_GTEST_MPI_NUMPROC}
                      ${MPIEXEC_PREFLAGS} "$<TARGET_FILE:${test_name}>"
                      "${TEST_COMMAND_LINE_OPTIONS}")
-    target_link_libraries(${test_name} ${MPI_C_LIBRARIES})
+    target_link_libraries(${test_name} PRIVATE ${MPI_C_LIBRARIES})
 
   else()
     if (TEST_RUNNER)

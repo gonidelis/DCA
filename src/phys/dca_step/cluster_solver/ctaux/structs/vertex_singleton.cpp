@@ -54,22 +54,22 @@ vertex_singleton::vertex_singleton(const vertex_singleton& other_vertex_couple)
       HS_field(other_vertex_couple.get_HS_field()),
       configuration_index(other_vertex_couple.get_configuration_index()) {}
 
-vertex_singleton& vertex_singleton::operator=(vertex_singleton& other_vertex_couple) {
-  band = other_vertex_couple.get_band();
-  e_spin = other_vertex_couple.get_e_spin();
-  spin_orbital = other_vertex_couple.get_spin_orbital();
-
-  paired_spin_orbital = other_vertex_couple.get_paired_spin_orbital();
-  r_site = other_vertex_couple.get_r_site();
-  delta_r = other_vertex_couple.get_delta_r();
-  tau = other_vertex_couple.get_tau();
-
-  HS_spin = other_vertex_couple.get_HS_spin();
-  HS_field = other_vertex_couple.get_HS_field();
-  configuration_index = other_vertex_couple.get_configuration_index();
-
-  return *this;
-}
+// vertex_singleton& vertex_singleton::operator=(vertex_singleton& other_vertex_couple) {
+//   band = other_vertex_couple.get_band();
+//   e_spin = other_vertex_couple.get_e_spin();
+//   spin_orbital = other_vertex_couple.get_spin_orbital();
+//
+//   paired_spin_orbital = other_vertex_couple.get_paired_spin_orbital();
+//   r_site = other_vertex_couple.get_r_site();
+//   delta_r = other_vertex_couple.get_delta_r();
+//   tau = other_vertex_couple.get_tau();
+//
+//   HS_spin = other_vertex_couple.get_HS_spin();
+//   HS_field = other_vertex_couple.get_HS_field();
+//   configuration_index = other_vertex_couple.get_configuration_index();
+//
+//   return *this;
+// }
 
 vertex_singleton& vertex_singleton::operator=(const vertex_singleton& other_vertex_couple) {
   band = other_vertex_couple.get_band();

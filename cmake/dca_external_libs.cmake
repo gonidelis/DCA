@@ -12,22 +12,18 @@ set(DCA_EXTERNAL_INCLUDE_DIRS "" CACHE INTERNAL "")
 ################################################################################
 # Lapack
 if (NOT DCA_HAVE_LAPACK)
-  mark_as_advanced(LAPACK_LIBRARIES)
-  find_package(MKL QUIET)
-  if (MKL_FOUND)
-     set(LAPACK_INCLUDE_DIRS ${MKL_INCLUDE_DIRS})
-     set(LAPACK_LIBRARIES mkl_intel_lp64 mkl_core mkl_sequential)
-     link_directories(${MKL_LIB_DIR})
-  else()
-    find_package(LAPACK REQUIRED)
-  endif()
-  list(APPEND DCA_EXTERNAL_LIBS ${LAPACK_LIBRARIES})
+  find_package(LAPACK REQUIRED)
 endif()
+
+mark_as_advanced(LAPACK_LIBRARIES)
+list(APPEND DCA_EXTERNAL_LIBS ${LAPACK_LIBRARIES})
 
 ################################################################################
 # HDF5
-# Find HDF5 by looking for a CMake configuration file (hdf5-1.10.x).
-find_package(HDF5 COMPONENTS C CXX NO_MODULE QUIET)
+if(NOT MSVC)
+  # Find HDF5 by looking for a CMake configuration file (hdf5-1.10.x).
+  find_package(HDF5 COMPONENTS C CXX NO_MODULE QUIET)
+endif()
 if (NOT HDF5_FOUND)
   # Fall back to a search for a FindHDF5.cmake file and execute it.
   find_package(HDF5 REQUIRED COMPONENTS C CXX)

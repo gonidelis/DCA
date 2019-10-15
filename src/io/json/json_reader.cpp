@@ -45,7 +45,7 @@ std::string JSONReader::get_path() {
 void JSONReader::parse(std::string& file_name_ref) {
   std::string file_name = file_name_ref;
 
-  std::wifstream file(file_name.c_str());
+  json_ifstream file(file_name.c_str());
 
   if (!file or !file.good() or file.bad()) {
     std::cout << "\n\n\tcannot open file : " << file_name << "\n";
