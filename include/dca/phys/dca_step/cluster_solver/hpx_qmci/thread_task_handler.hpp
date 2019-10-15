@@ -18,7 +18,6 @@
 #define DCA_PHYS_LIBRARY_DCA_STEP_CLUSTER_SOLVER_POSIX_QMCI_THREAD_TASK_HANDLER_HPP
 
 #include <hpx/hpx.hpp>
-#include <hpx/util/logging.hpp>
 
 #include <string>
 #include <vector>

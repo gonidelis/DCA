@@ -2,7 +2,7 @@
 
 dca_add_gtest(call_once_per_loop_test
   GTEST_MAIN
-  STDTHREAD
+  HPX
   LIBS
   ${DCA_THREADING_LIBS})
 

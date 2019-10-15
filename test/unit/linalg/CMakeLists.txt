@@ -28,26 +28,26 @@ dca_add_gtest(matrix_gpu_test
 
 dca_add_gtest(matrixop_complex_cpu_test
               GTEST_MAIN
-              LIBS ${DCA_LIBS})
+              LIBS ${DCA_LIBS} ${LAPACK_LIBRARIES})
 
 dca_add_gtest(matrixop_real_cpu_test
               GTEST_MAIN
-              LIBS ${DCA_LIBS})
+              LIBS ${DCA_LIBS} ${LAPACK_LIBRARIES})
 
 dca_add_gtest(matrixop_cpu_gpu_test
               GTEST_MAIN
               CUDA
-              LIBS ${DCA_LIBS})
+              LIBS ${DCA_LIBS} ${LAPACK_LIBRARIES})
 
 dca_add_gtest(matrixop_real_gpu_test
               GTEST_MAIN
               CUDA
-              LIBS ${DCA_LIBS})
+              LIBS ${DCA_LIBS} ${LAPACK_LIBRARIES})
 
 dca_add_gtest(matrixop_complex_gpu_test
               GTEST_MAIN
               CUDA
-              LIBS ${DCA_LIBS})
+              LIBS ${DCA_LIBS} ${LAPACK_LIBRARIES})
 
 dca_add_gtest(reshapable_matrix_cpu_test GTEST_MAIN)
 

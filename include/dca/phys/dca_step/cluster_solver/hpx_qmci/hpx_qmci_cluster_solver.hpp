@@ -28,7 +28,6 @@
   "" << std::dec << (int)((uint8_t*)&p)[0] << "." << (int)((uint8_t*)&p)[1] << "." \
      << (int)((uint8_t*)&p)[2] << "." << (int)((uint8_t*)&p)[3] << " "
 
-#include <hpx/util/logging.hpp>
 #include <hpx/lcos/local/mutex.hpp>
 #include <hpx/include/future.hpp>
 #include <hpx/include/components.hpp>

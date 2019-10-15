@@ -3,9 +3,9 @@
 #include "dca/config/hpx_defines.hpp"
 #include "dca/parallel/hpx/hpx.hpp"
 
-#if defined(DCA_HAVE_HPX_LOGGING) && !defined(NDEBUG)
-log_mutex_type log_mutex;
-#endif
+//#if defined(DCA_HAVE_HPX_LOGGING) && !defined(NDEBUG)
+//log_mutex_type log_mutex;
+//#endif
 
 namespace dca {
 namespace parallel {

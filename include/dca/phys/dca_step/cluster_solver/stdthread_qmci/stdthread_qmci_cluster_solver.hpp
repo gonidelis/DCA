@@ -244,7 +244,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalker(int id) {
 
             // Wait for available accumulators.
             {
-              std::unique_lock<std::mutex> lock(mutex_queue_);
+              dca::parallel::thread_traits::scoped_lock lock(mutex_queue_);
               queue_insertion_.wait(lock, [&]() { return !accumulators_queue_.empty(); });
               acc_ptr = accumulators_queue_.front();
               accumulators_queue_.pop();
@@ -388,7 +388,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startAccumulator(int id) {
   try {
     while (true) {
       {
-        std::lock_guard<std::mutex> lock(mutex_queue_);
+        dca::parallel::thread_traits::scoped_lock lock(mutex_queue_);
         if (walk_finished_ == parameters_.get_walkers())
           break;
         accumulators_queue_.push(&accumulator_obj);

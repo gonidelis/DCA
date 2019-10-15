@@ -15,7 +15,6 @@
 #define DCA_QMCI_HPX_JACKET_FOR_MC_ACCUMULATION_H
 
 #include <hpx/hpx.hpp>
-#include <hpx/util/logging.hpp>
 
 #include <dca/config/hpx_defines.hpp>
 
