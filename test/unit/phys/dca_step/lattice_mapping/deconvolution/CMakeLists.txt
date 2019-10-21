@@ -1,8 +1,7 @@
 # (Phys) deconvolution unit tests
 
 dca_add_gtest(deconvolution_routines_test
-  STDTHREAD
   GTEST_MAIN
+  HPX
   INCLUDE_DIRS ${SIMPLEX_GM_RULE_INCLUDE_DIR}
-  LIBS json function cluster_domains time_and_frequency_domains quantum_domains gaussian_quadrature
-       tetrahedron_mesh coarsegraining enumerations ${LAPACK_LIBRARIES} ${DCA_CUDA_LIBS})
+  LIBS json function ${DCA_THREADING_LIBS} parallel_util cluster_domains time_and_frequency_domains quantum_domains gaussian_quadrature tetrahedron_mesh coarsegraining enumerations ${LAPACK_LIBRARIES} lapack ${DCA_CUDA_LIBS})

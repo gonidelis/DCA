@@ -17,6 +17,7 @@ dca_add_gtest(tp_accumulator_singleband_test
   )
 
 dca_add_gtest(tp_accumulator_particle_hole_test
+  CUDA
   FAST
   GTEST_MAIN
   HPX
