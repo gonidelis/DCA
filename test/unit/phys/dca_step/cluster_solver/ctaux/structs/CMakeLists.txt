@@ -3,6 +3,7 @@
 dca_add_gtest(read_write_config_test
         FAST
         GTEST_MAIN
+	HPX
         INCLUDE_DIRS ${DCA_INCLUDE_DIRS};${PROJECT_SOURCE_DIR}
         LIBS     ${DCA_LIBS}
         )
