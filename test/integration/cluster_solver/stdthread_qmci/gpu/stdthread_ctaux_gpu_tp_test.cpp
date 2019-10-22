@@ -28,7 +28,11 @@
 #include "dca/phys/dca_data/dca_data.hpp"
 #include "dca/phys/dca_loop/dca_loop_data.hpp"
 #include "dca/phys/dca_step/cluster_solver/ctaux/ctaux_cluster_solver.hpp"
-#include "dca/phys/dca_step/cluster_solver/stdthread_qmci/stdthread_qmci_cluster_solver.hpp"
+#ifdef DCA_HAVE_HPX
+# include "dca/phys/dca_step/cluster_solver/hpx_qmci/hpx_qmci_cluster_solver.hpp"
+#else
+# include "dca/phys/dca_step/cluster_solver/stdthread_qmci/stdthread_qmci_cluster_solver.hpp"
+#endif
 #include "dca/phys/domains/cluster/symmetries/point_groups/2d/2d_square.hpp"
 #include "dca/phys/models/analytic_hamiltonians/square_lattice.hpp"
 #include "dca/phys/models/tight_binding_model.hpp"
@@ -49,12 +53,21 @@ using Parameters = dca::phys::params::Parameters<Concurrency, Threading, dca::pr
                                                  Model, RngType, dca::phys::solver::CT_AUX>;
 using Data = dca::phys::DcaData<Parameters>;
 
+#ifdef DCA_HAVE_HPX
+using BaseSolverGpu = dca::phys::solver::CtauxClusterSolver<dca::linalg::GPU, Parameters, Data>;
+using QmcSolverGpu = dca::phys::solver::HPXQmciClusterSolver<BaseSolverGpu>;
+#else
 using BaseSolverGpu = dca::phys::solver::CtauxClusterSolver<dca::linalg::GPU, Parameters, Data>;
 using QmcSolverGpu = dca::phys::solver::StdThreadQmciClusterSolver<BaseSolverGpu>;
+#endif
 
+#ifdef DCA_HAVE_HPX
 using BaseSolverCpu = dca::phys::solver::CtauxClusterSolver<dca::linalg::CPU, Parameters, Data>;
-using QmcSolverCpu = dca::phys::solver::StdThreadQmciClusterSolver<BaseSolverCpu>;
-
+using QmcSolverCpu = dca::phys::solver::HPXQmciClusterSolver<BaseSolverCpu>;
+#else
+using BaseSolverGpu = dca::phys::solver::CtauxClusterSolver<dca::linalg::GPU, Parameters, Data>;
+using QmcSolverGpu = dca::phys::solver::StdThreadQmciClusterSolver<BaseSolverGpu>;
+#endif
 TEST(PosixCtauxClusterSolverTest, G_k_w) {
   dca::linalg::util::initializeMagma();
   Concurrency concurrency(0, nullptr);

@@ -2,8 +2,8 @@
 
 dca_add_gtest(lattice_mapping_sp_test
   EXTENSIVE
-  STDTHREAD
+  HPX
   GTEST_MAIN
   INCLUDE_DIRS ${SIMPLEX_GM_RULE_INCLUDE_DIR} ${FFTW_INCLUDE_DIR}
   LIBS json function cluster_domains time_and_frequency_domains quantum_domains gaussian_quadrature
-       tetrahedron_mesh coarsegraining enumerations dca_hdf5 ${LAPACK_LIBRARIES} ${HDF5_LIBRARIES} ${DCA_CUDA_LIBS})
+       tetrahedron_mesh coarsegraining enumerations dca_hdf5 ${LAPACK_LIBRARIES} ${HDF5_LIBRARIES} ${DCA_CUDA_LIBS} ${DCA_THREADING_LIBS} parallel_util  ${LAPACK_LIBRARIES} lapack)

@@ -69,6 +69,7 @@ private:
 
   int thread_id_;
   bool measuring_;
+  std::atomic<bool> done_;
   dca::parallel::thread_traits::condition_variable_type start_measuring_;
   dca::parallel::thread_traits::mutex_type mutex_accumulator_;
 };
@@ -100,15 +101,21 @@ void StdThreadQmciAccumulator<QmciAccumulator>::updateFrom(walker_type& walker) 
 template <class QmciAccumulator>
 void StdThreadQmciAccumulator<QmciAccumulator>::waitForQmciWalker() {
   dca::parallel::thread_traits::unique_lock lock(mutex_accumulator_);
-  start_measuring_.wait(lock, [this]() { return measuring_ == true; });
+  start_measuring_.wait(lock, [this]() { return measuring_ || done_; });
 }
 
 template <class qmci_accumulator_type>
 void StdThreadQmciAccumulator<qmci_accumulator_type>::measure() {
   dca::parallel::thread_traits::scoped_lock lock(mutex_accumulator_);
-  qmci_accumulator_type::measure();
+  //qmci_accumulator_type::measure();
+  //measuring_ = false;
+  //++measurements_done_;
+  if (done_)	
+    return;	
+  assert(measuring_);	
+
+  qmci_accumulator_type::measure();	
   measuring_ = false;
-  ++measurements_done_;
 }
 
 template <class qmci_accumulator_type>

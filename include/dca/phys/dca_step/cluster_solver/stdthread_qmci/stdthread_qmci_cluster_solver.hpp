@@ -21,8 +21,11 @@
 #include <stdexcept>
 #include <vector>
 
-#include "dca/config/threading.hpp"
+#include "dca/io/buffer.hpp"
+#include "dca/io/hdf5/hdf5_writer.hpp"
 #include "dca/linalg/util/handle_functions.hpp"
+#include "dca/config/threading.hpp"
+#include "dca/parallel/util/get_workload.hpp"
 #include "dca/phys/dca_step/cluster_solver/stdthread_qmci/stdthread_qmci_accumulator.hpp"
 #include "dca/phys/dca_step/cluster_solver/thread_task_handler.hpp"
 #include "dca/profiling/events/time.hpp"
@@ -97,6 +100,8 @@ private:
   dca::parallel::thread_traits::mutex_type mutex_merge_;
   dca::parallel::thread_traits::mutex_type mutex_queue_;
   dca::parallel::thread_traits::condition_variable_type queue_insertion_;
+
+  std::vector<dca::io::Buffer> config_dump_;
 };
 
 template <class QmciSolver>
@@ -130,7 +135,7 @@ StdThreadQmciClusterSolver<QmciSolver>::StdThreadQmciClusterSolver(Parameters& p
 
   // Create a sufficient amount of cublas handles, cuda streams and threads.
   linalg::util::resizeHandleContainer(thread_task_handler_.size());
-  parallel::ThreadPool::get_instance().enlarge(thread_task_handler_.size());
+//  parallel::ThreadPool::get_instance().enlarge(thread_task_handler_.size());
 }
 
 template <class QmciSolver>
@@ -184,7 +189,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::integrate() {
 
   try {
     for (auto& future : futures)
-      future.get();
+      future.wait();
   }
   catch (std::exception& err) {
     print_metadata();
@@ -244,7 +249,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalker(int id) {
 
             // Wait for available accumulators.
             {
-              dca::parallel::thread_traits::scoped_lock lock(mutex_queue_);
+              std::unique_lock<dca::parallel::thread_traits::mutex_type> lock(mutex_queue_);
               queue_insertion_.wait(lock, [&]() { return !accumulators_queue_.empty(); });
               acc_ptr = accumulators_queue_.front();
               accumulators_queue_.pop();
@@ -262,40 +267,12 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalker(int id) {
       exception_ptr = std::make_unique<std::bad_alloc>(err);
   }
 
-  StdThreadAccumulatorType* acc_ptr = nullptr;
-
-  while (--measurements_remaining_ >= 0) {
-    {
-      Profiler profiler("stdthread-MC-walker updating", "stdthread-MC-walker", __LINE__, id);
-      walker.doSweep();
-    }
-
-    {
-      Profiler profiler("stdthread-MC-walker waiting", "stdthread-MC-walker", __LINE__, id);
-      acc_ptr = nullptr;
-
-      // Wait for available accumulators.
-      while (acc_ptr == NULL) {
-        std::unique_lock<dca::parallel::thread_traits::mutex_type> lock(mutex_queue_);
-        queue_insertion_.wait(lock, [&]() { return !accumulators_queue_.empty(); });
-        acc_ptr = accumulators_queue_.front();
-        accumulators_queue_.pop();
-/*
-      while (acc_ptr == NULL) {  // checking for available accumulators
-        {
-            dca::parallel::thread_traits::scoped_lock lock(mutex_queue);
-            if (!accumulators_queue.empty()) {
-                acc_ptr = accumulators_queue.front();
-                accumulators_queue.pop();
-            }
-        }
-*/
-        // make sure yield is outside of lock scope, this is here
-        // to allow another thread to put an accumulator onto the queue
-        // if only a single thread is being used (at a time, e.g hpx::threads=1)
-//        dca::parallel::thread_traits::yield();
-      }
-      acc_ptr->updateFrom(walker);
+  // If this is the last walker signal to all the accumulators to exit the loop.
+  if (++walk_finished_ == parameters_.get_walkers()) {
+    dca::parallel::thread_traits::scoped_lock lock(mutex_queue_);
+    while (!accumulators_queue_.empty()) {
+      accumulators_queue_.front()->notifyDone();
+      accumulators_queue_.pop();
     }
   }
 
@@ -378,12 +355,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startAccumulator(int id) {
 
   accumulator_obj.initialize(dca_iteration_);
 
-  for (int i = 0; i < n_meas; ++i) {
-    {
-      dca::parallel::thread_traits::scoped_lock lock(mutex_queue_);
-      accumulators_queue_.push(&accumulator_obj);
-    }
-    queue_insertion_.notify_one();
+  std::unique_ptr<std::exception> exception_ptr;
 
   try {
     while (true) {
