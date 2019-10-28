@@ -15,12 +15,12 @@
 #ifndef DCA_PARALLEL_STDTHREAD_THREAD_POOL_THREAD_POOL_HPP
 #define DCA_PARALLEL_STDTHREAD_THREAD_POOL_THREAD_POOL_HPP
 
-#include <condition_variable>
+//#include <condition_variable>
 #include <iostream>
 #include <functional>
 #include <future>
 #include <memory>
-#include <mutex>
+//#include <mutex>
 #include <queue>
 #include <stdexcept>
 #include <thread>

@@ -8,7 +8,7 @@
 // Author: Urs R. Haehner (haehneru@itp.phys.ethz.ch)
 //         Giovanni Balduzzi (gbalduzz@itp.phys.ethz.ch)
 //
-// This file tests stdthread.hpp.
+// This file tests thread.hpp.
 
 #include "dca/parallel/hpx/hpxthread.hpp"
 #include <hpx/hpx_main.hpp>

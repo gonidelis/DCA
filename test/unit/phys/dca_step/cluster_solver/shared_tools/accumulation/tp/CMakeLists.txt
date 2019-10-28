@@ -25,7 +25,7 @@ dca_add_gtest(tp_accumulator_particle_hole_test
     HPX
   INCLUDE_DIRS ${PROJECT_SOURCE_DIR} ${FFTW_INCLUDE_DIR} ${HDF5_INCLUDE_DIR} ${HPX_INCLUDE_DIRS}
   LIBS function cluster_domains time_and_frequency_domains quantum_domains timer json random
-       enumerations dca_algorithms parallel_stdthread parallel_util ${LAPACK_LIBRARIES})
+       enumerations dca_algorithms parallel_hpxthread parallel_util ${LAPACK_LIBRARIES})
 
 dca_add_gtest(tp_accumulator_gpu_test
   CUDA

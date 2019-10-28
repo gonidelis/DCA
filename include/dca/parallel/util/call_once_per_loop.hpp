@@ -10,8 +10,10 @@
 // Provides an utility to call a function only once per loop id.
 
 #include <atomic>
-#include <mutex>
+//#include <mutex>
 #include <stdexcept>
+
+#include <hpx/lcos/local/spinlock.hpp>
 
 #ifndef DCA_PARALLEL_UTIL_CALL_ONCE_PER_LOOP_HPP
 #define DCA_PARALLEL_UTIL_CALL_ONCE_PER_LOOP_HPP
@@ -24,7 +26,7 @@ struct OncePerLoopFlag {
   OncePerLoopFlag() : loop_done(-1) {}
 
   std::atomic<int> loop_done;
-  std::mutex mutex;
+  hpx::lcos::local::mutex mutex;
 };
 
 // This routine ensures f(args...) is called by a single thread for each value of loop index. Other
@@ -43,7 +45,7 @@ void callOncePerLoop(OncePerLoopFlag& flag, const int loop_id, F&& f, Args&&... 
   else if (loop_id > currently_done + 1 && currently_done != -1)
     throw(std::logic_error("Loop id called out of order."));
 
-  std::unique_lock<std::mutex> lock(flag.mutex);
+  std::unique_lock<hpx::lcos::local::mutex> lock(flag.mutex);
   // Check if flag.loop_done changed before locking the mutex.
   if (loop_id <= flag.loop_done)
     return;

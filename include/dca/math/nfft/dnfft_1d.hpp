@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <cassert>
 #include <complex>
-#include <mutex>
+//#include <mutex>
 #include <stdexcept>
 #include <vector>
 
@@ -34,6 +34,9 @@
 #include "dca/math/nfft/nfft_mode_names.hpp"
 #include "dca/math/nfft/window_functions/gaussian_window_function.hpp"
 #include "dca/math/nfft/window_functions/kaiser_bessel_function.hpp"
+
+#include <hpx/lcos/local/spinlock.hpp>
+#include <hpx/lcos/local/condition_variable.hpp>
 
 namespace dca {
 namespace math {
@@ -400,7 +403,7 @@ void Dnfft1D<ScalarType, WDmn, PDmn, oversampling, mode>::transformFTauToFW(
   // as such does not meet the requirements of "Erasable" required by std::vector.
   std::vector<std::complex<double>> f_out(n / 2 + 1);
 
-  static std::mutex fftw_mutex;
+  static hpx::lcos::local::mutex fftw_mutex;
   fftw_mutex.lock();
   // See http://www.fftw.org/fftw3_doc/Complex-numbers.html for why the cast should be safe.
   fftw_plan plan = fftw_plan_dft_r2c_1d(

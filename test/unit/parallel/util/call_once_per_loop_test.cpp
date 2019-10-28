@@ -14,7 +14,8 @@
 #include <vector>
 #include <gtest/gtest.h>
 
-#include "dca/parallel/stdthread/thread_pool/thread_pool.hpp"
+//#include "dca/parallel/stdthread/thread_pool/thread_pool.hpp"
+#include "dca/parallel/hpx/hpxthread.hpp"
 
 void task(unsigned int loop_id, std::vector<int>& data) {
   static dca::util::OncePerLoopFlag flag;
@@ -31,11 +32,11 @@ TEST(CallOncePerLoopTest, All) {
 
   {
     const int n_threads = 8;
-    dca::parallel::ThreadPool pool(n_threads);
+//    dca::parallel::ThreadPool pool(n_threads);
 
     for (unsigned int loop_id = 0; loop_id < n_loops; ++loop_id) {
       for (int thread_id = 0; thread_id < n_threads; ++thread_id) {
-        pool.enqueue(task, loop_id, std::ref(result));
+        hpx::async(task, loop_id, std::ref(result));
       }
     }
   }

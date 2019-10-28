@@ -14,11 +14,14 @@
 #define DCA_PHYS_DCA_STEP_CLUSTER_SOLVER_STDTHREAD_QMCI_STDTHREAD_QMCI_ACCUMULATOR_HPP
 
 #include <atomic>
-#include <condition_variable>
-#include <mutex>
+//#include <condition_variable>
+//#include <mutex>
 #include <queue>
 #include <stdexcept>
 #include <thread>
+
+#include <hpx/lcos/local/spinlock.hpp>
+#include <hpx/lcos/local/condition_variable.hpp>
 
 namespace dca {
 namespace phys {
@@ -71,8 +74,8 @@ private:
   int thread_id_;
   bool measuring_;
   std::atomic<bool> done_;
-  std::condition_variable start_measuring_;
-  std::mutex mutex_accumulator_;
+  hpx::lcos::local::condition_variable start_measuring_;
+  hpx::lcos::local::mutex mutex_accumulator_;
 };
 
 template <class QmciAccumulator>
@@ -88,7 +91,7 @@ template <typename walker_type>
 void StdThreadQmciAccumulator<QmciAccumulator>::updateFrom(walker_type& walker) {
   {
     // take a lock and keep it until it goes out of scope
-    std::unique_lock<std::mutex> lock(mutex_accumulator_);
+    std::unique_lock<hpx::lcos::local::mutex> lock(mutex_accumulator_);
     if (measuring_)
       throw std::logic_error(__FUNCTION__);
 
@@ -101,13 +104,13 @@ void StdThreadQmciAccumulator<QmciAccumulator>::updateFrom(walker_type& walker) 
 
 template <class QmciAccumulator>
 void StdThreadQmciAccumulator<QmciAccumulator>::waitForQmciWalker() {
-  std::unique_lock<std::mutex> lock(mutex_accumulator_);
+  std::unique_lock<hpx::lcos::local::mutex> lock(mutex_accumulator_);
   start_measuring_.wait(lock, [this]() { return measuring_ || done_; });
 }
 
 template <class QmciAccumulator>
 void StdThreadQmciAccumulator<QmciAccumulator>::measure() {
-  std::unique_lock<std::mutex> lock(mutex_accumulator_);
+  std::unique_lock<hpx::lcos::local::mutex> lock(mutex_accumulator_);
 
   if (done_)
     return;
@@ -119,7 +122,7 @@ void StdThreadQmciAccumulator<QmciAccumulator>::measure() {
 
 template <class QmciAccumulator>
 void StdThreadQmciAccumulator<QmciAccumulator>::sumTo(QmciAccumulator& other) {
-  std::unique_lock<std::mutex> lock(mutex_accumulator_);
+  std::unique_lock<hpx::lcos::local::mutex> lock(mutex_accumulator_);
   QmciAccumulator::sumTo(other);
 }
 
