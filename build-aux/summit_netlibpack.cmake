@@ -5,7 +5,7 @@
 # Prevent CMake from searching for BLAS and LAPACK libraries.
 # Paths to IBM's ESSL (preferred) and NETLIB-LAPACK will be set manually.
 set(DCA_HAVE_LAPACK TRUE CACHE INTERNAL "If set to TRUE, prevents CMake from searching for LAPACK.")
-option(DCA_WITH_ESSL "Enable essl support." OFF)
+option(DCA_WITH_ESSL "Enable essl support." ON)
 if (DCA_WITH_ESSL)
     # To give ESSL precedence it needs to be specified before NETLIB.
     set(LAPACK_LIBRARIES $ENV{OLCF_ESSL_ROOT}/lib64/libessl.so;$ENV{OLCF_NETLIB_LAPACK_ROOT}/lib64/liblapack.so;$ENV{OLCF_NETLIB_LAPACK_ROOT}/lib64/libblas.so CACHE FILEPATH "Libraries to link against to use LAPACK.")
