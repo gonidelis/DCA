@@ -11,3 +11,6 @@ endif()
 # if find_package(MPI) was used we need this, otherwise it does nothing
 target_link_libraries(parallel_mpi_concurrency PUBLIC ${MPI_C_LIBRARIES})
 
+if(DCA_HAVE_HPX)
+target_link_libraries(parallel_mpi_concurrency PRIVATE hpx)
+endif()

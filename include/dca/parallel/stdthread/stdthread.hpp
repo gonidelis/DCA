@@ -15,6 +15,7 @@
 #define DCA_PARALLEL_STDTHREAD_STDTHREAD_HPP
 
 #include <cassert>
+#include <future>
 #include <iostream>
 #include <vector>
 
@@ -32,7 +33,7 @@ public:
   void execute(int num_threads, F&& f, Args&&... args) {
     assert(num_threads > 0);
 
-    std::vector<std::future<void>> futures;
+    std::vector<thread_traits::future_type<void>> futures;
     auto& pool = ThreadPool::get_instance();
     pool.enlarge(num_threads);
 
@@ -54,7 +55,7 @@ public:
 
     using ReturnType = typename std::result_of<F(int, int, Args...)>::type;
 
-    std::vector<std::future<ReturnType>> futures;
+    std::vector<thread_traits::future_type<ReturnType>> futures;
     auto& pool = ThreadPool::get_instance();
     pool.enlarge(num_threads);
 

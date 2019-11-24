@@ -19,6 +19,11 @@
 #include <utility>
 #include <stdexcept>
 
+#include "dca/config/haves_defines.hpp"
+#include "dca/config/config_defines.hpp"
+#include "dca/config/hpx_defines.hpp"
+#include "dca/parallel/hpx/hpx.hpp"
+
 #include <mpi.h>
 
 #include "dca/parallel/mpi_concurrency/mpi_collective_max.hpp"
