@@ -2,6 +2,7 @@
 
 dca_add_gtest(sp_accumulator_gpu_test
   CUDA
+  HPX
   GTEST_MAIN
   INCLUDE_DIRS ${DCA_INCLUDE_DIRS};${PROJECT_SOURCE_DIR}
   LIBS     ${DCA_LIBS}

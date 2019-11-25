@@ -21,6 +21,10 @@
 #include "dca/util/git_version.hpp"
 #include "dca/util/modules.hpp"
 
+#ifdef DCA_HAVE_HPX
+# include <hpx/hpx_main.hpp>
+#endif
+
 int main(int argc, char** argv) {
   if (argc < 2) {
     std::cerr << "Usage: " << argv[0] << " input_file.json" << std::endl;

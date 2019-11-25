@@ -3,8 +3,9 @@ set(TEST_LIBRARIES ${DCA_LIBS} ${DCA_CUDA_LIBS} statistical_testing)
 
 dca_add_gtest(NiO_no_change_test
     GTEST_MAIN
+    HPX
     EXTENSIVE
     MPI MPI_NUMPROC 2
     INCLUDE_DIRS ${DCA_INCLUDE_DIRS};${PROJECT_SOURCE_DIR}
-    LIBS ${DCA_LIBS}
+    LIBS ${DCA_LIBS} ${DCA_THREADING_LIBS}
     )

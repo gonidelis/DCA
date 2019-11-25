@@ -1,0 +1,22 @@
+Performing C++ SOURCE FILE Test CXX_SUPPORTS_MPI failed with the following output:
+Change Dir: /Users/w50/CLionProjects/dev/src/hpx_dca/DCA/cmake-build-debug/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/make cmTC_1a5c3/fast 
+/Library/Developer/CommandLineTools/usr/bin/make -f CMakeFiles/cmTC_1a5c3.dir/build.make CMakeFiles/cmTC_1a5c3.dir/build
+Building CXX object CMakeFiles/cmTC_1a5c3.dir/src.cxx.o
+/Library/Developer/CommandLineTools/usr/bin/c++    -DCXX_SUPPORTS_MPI -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX10.14.sdk   -o CMakeFiles/cmTC_1a5c3.dir/src.cxx.o -c /Users/w50/CLionProjects/dev/src/hpx_dca/DCA/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
+/Users/w50/CLionProjects/dev/src/hpx_dca/DCA/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx:1:10: fatal error: 'mpi.h' file not found
+#include <mpi.h>
+         ^~~~~~~
+1 error generated.
+make[1]: *** [CMakeFiles/cmTC_1a5c3.dir/src.cxx.o] Error 1
+make: *** [cmTC_1a5c3/fast] Error 2
+
+Source file was:
+#include <mpi.h>
+   int main(int argc, char** argv)
+   {
+     MPI_Init(&argc, &argv);
+     MPI_Finalize();
+     return 0;
+   }

@@ -95,10 +95,12 @@ function(dca_add_gtest name)
   add_executable(${test_name} ${name}.cpp ${DCA_ADD_GTEST_SOURCES})
 
   if(DCA_ADD_GTEST_HPX AND DCA_HAVE_HPX)
+    target_link_libraries(${test_name} PRIVATE hpx hpx_init)
     hpx_setup_target(${test_name})
   endif()
   if(DCA_ADD_GTEST_STDTHREAD AND DCA_HAVE_HPX)
     message("HPX config for ${test_name}")
+    target_link_libraries(${test_name} PRIVATE hpx hpx_init)
     hpx_setup_target(${test_name})
   endif()
 
@@ -110,6 +112,7 @@ function(dca_add_gtest name)
     # Use gtest main.
     target_link_libraries(${test_name} PRIVATE gtest_main ${DCA_ADD_GTEST_LIBS})
     if (DCA_ADD_GTEST_STDTHREAD AND DCA_HAVE_HPX)
+      target_link_libraries(${test_name} PRIVATE hpx hpx_init)
       target_compile_definitions(${test_name} PRIVATE "DCA_HPX_MAIN")
       message("HPX command-line-options for ${test_name}")
       set(TEST_COMMAND_LINE_OPTIONS

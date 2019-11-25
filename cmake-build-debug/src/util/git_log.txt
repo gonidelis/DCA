@@ -1,0 +1,8 @@
+commit b874cf7c8f66efa7dc3d592f6eeb96c52916ab89
+Merge: e0eed7eb ba9b17bf
+Author: Peter Doak <PDoakORNL@users.noreply.github.com>
+Date:   Tue Oct 22 15:03:11 2019 -0400
+
+    Merge pull request #147 from CompFUSE/ct_int-configuration
+    
+    Ct int configuration

@@ -26,7 +26,6 @@
 #include "dca/math/random/random.hpp"
 #include "dca/math/statistical_testing/function_cut.hpp"
 #include "dca/math/statistical_testing/statistical_testing.hpp"
-#include "dca/parallel/stdthread/stdthread.hpp"
 #include "dca/phys/models/analytic_hamiltonians/square_lattice.hpp"
 #include "dca/phys/models/tight_binding_model.hpp"
 #include "dca/phys/parameters/parameters.hpp"
@@ -35,6 +34,9 @@
 #include "dca/util/modules.hpp"
 #include "dca/testing/dca_mpi_test_environment.hpp"
 #include "dca/testing/minimalist_printer.hpp"
+
+#include "dca/config/haves_defines.hpp"
+#include "dca/config/threading.hpp"
 
 namespace dca {
 namespace testing {

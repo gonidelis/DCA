@@ -16,7 +16,6 @@
 #include "dca/math/statistical_testing/function_cut.hpp"
 #include "dca/math/statistical_testing/statistical_testing.hpp"
 #include "dca/math/random/std_random_wrapper.hpp"
-#include "dca/parallel/stdthread/stdthread.hpp"
 #include "dca/phys/dca_data/dca_data.hpp"
 #include "dca/phys/dca_step/cluster_solver/stdthread_qmci/stdthread_qmci_cluster_solver.hpp"
 #include "dca/phys/dca_step/cluster_solver/ss_ct_hyb/ss_ct_hyb_cluster_solver.hpp"
@@ -27,6 +26,9 @@
 #include "dca/testing/minimalist_printer.hpp"
 #include "dca/util/git_version.hpp"
 #include "dca/util/modules.hpp"
+
+#include "dca/config/haves_defines.hpp"
+#include "dca/config/threading.hpp"
 
 // needed only if solver output is written
 //#include "dca/phys/dca_loop/dca_loop_data.hpp"

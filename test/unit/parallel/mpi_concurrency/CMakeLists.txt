@@ -19,8 +19,10 @@ dca_add_gtest(mpi_type_map_test
   GTEST_MAIN
   MPI MPI_NUMPROC 1)
 dca_add_gtest(mpi_concurrency_test
+  HPX
   MPI MPI_NUMPROC 4
   LIBS parallel_mpi_concurrency)
 dca_add_gtest(mpi_gather_test
+  HPX
   MPI MPI_NUMPROC 8
   LIBS parallel_mpi_concurrency function)

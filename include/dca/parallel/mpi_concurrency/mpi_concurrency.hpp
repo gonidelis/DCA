@@ -21,8 +21,6 @@
 
 #include "dca/config/haves_defines.hpp"
 #include "dca/config/config_defines.hpp"
-#include "dca/config/hpx_defines.hpp"
-#include "dca/parallel/hpx/hpx.hpp"
 
 #include <mpi.h>
 
