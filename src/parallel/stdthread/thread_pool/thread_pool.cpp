@@ -10,13 +10,10 @@
 //
 // This file implements the methods of thead_pool.hpp
 
-<<<<<<< HEAD
-#include "dca/parallel/stdthread/thread_pool/thread_pool.hpp"
 
+#include "dca/parallel/stdthread/thread_pool/thread_pool.hpp"
 #include "dca/parallel/stdthread/thread_pool/affinity.hpp"
-=======
 #include "dca/config/threading.hpp"
->>>>>>> Add abstraction layer for threading library std::thread or hpx::thread
 
 namespace dca {
 namespace parallel {

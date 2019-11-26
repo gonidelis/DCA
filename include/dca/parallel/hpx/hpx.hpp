@@ -7,6 +7,7 @@
 //
 // Author: John Biddiscombe (john.biddiscombe@cscs.ch) 
 //         Weile Wei (wwei9@lsu.edu)
+// Author: Peter Staar (taa@zurich.ibm.com)
 //         Urs R. Haehner (haehneru@itp.phys.ethz.ch)
 //
 // This class provides an interface for parallelizing with HPX.
@@ -162,6 +163,11 @@ public:
 
 //    hpx::parallel::execution::parallel_executor;
 //    hpx::threads::executors::default_executor;
+//  hpx::threads::executors::limiting_executor
+//    <hpx::threads::executors::default_executor> exec;
+
+  hpx::parallel::execution::parallel_executor exec;
+
 };
 
 
@@ -180,11 +186,10 @@ struct hpxthread
     pool.enlarge(num_threads);
 
     // Fork.
-    // Note we do not use std::forward here because we do not want to
-    // accidentally move the same args more than once, we must use copy semantics
     for (int id = 0; id < num_threads; ++id)
       futures.emplace_back(
-          pool.enqueue(f, id, num_threads, args...));
+          pool.enqueue(std::forward<F>(f),
+            id, num_threads,std::forward<Args>(args)...));
 
     // Join.
     for (auto& future : futures)
@@ -205,12 +210,9 @@ struct hpxthread
     pool.enlarge(num_threads);
 
     // Spawn num_threads tasks.
-    // Note we do not use std::forward here because we do not want to
-    // accidentally move the same args more than once, we must use copy semantics
     for (int id = 0; id < num_threads; ++id)
       futures.emplace_back(
-          pool.enqueue(f, id, num_threads, args...));
-
+          pool.enqueue(std::forward<F>(f), id, num_threads, std::forward<Args>(args)...));
     // Sum the result of the tasks.
     ReturnType result = 0;
     for (auto& future : futures)

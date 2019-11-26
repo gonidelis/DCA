@@ -25,6 +25,7 @@
 # if defined(DCA_HAVE_HPX_LOGGING) && !defined(NDEBUG)
 //#  include <hpx/logging.hpp>
 #  include <hpx/synchronization/mutex.hpp>
+#  include <hpx/lcos/local/mutex.hpp>
 #  include <mutex> // lock_guard
 typedef std::mutex    log_mutex_type;
 extern log_mutex_type log_mutex;

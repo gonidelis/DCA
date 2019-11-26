@@ -47,10 +47,17 @@ void callOncePerLoop(OncePerLoopFlag& flag, const int loop_id, F&& f, Args&&... 
     else if (loop_id > currently_done + 1 && currently_done != -1)
         throw(std::logic_error("Loop id called out of order."));
 
+<<<<<<< HEAD
     std::unique_lock<dca::parallel::thread_traits::mutex_type> lock(flag.mutex);
     // Check if flag.loop_done changed before locking the mutex.
     if (loop_id <= flag.loop_done)
         return;
+=======
+  dca::parallel::thread_traits::unique_lock lock(flag.mutex);
+  // Check if flag.loop_done changed before locking the mutex.
+  if (loop_id <= flag.loop_done)
+    return;
+>>>>>>> Add abstraction layer for threading library std::thread or hpx::thread
 
     // Run the task.
     f(args...);
