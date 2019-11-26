@@ -51,7 +51,7 @@ endif()
 ################################################################################
 ################################################################################
 # FFTW
-find_package(FFTW REQUIRED)
+find_package(FFTW)
 
 list(APPEND DCA_EXTERNAL_LIBS ${FFTW_LIBRARIES})
 list(APPEND DCA_EXTERNAL_INCLUDE_DIRS ${FFTW_INCLUDE_DIRS})
