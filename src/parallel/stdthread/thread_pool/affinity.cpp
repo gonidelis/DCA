@@ -15,6 +15,7 @@
 #endif
 
 #include "dca/parallel/stdthread/thread_pool/affinity.hpp"
+#include "dca/config/threading.hpp"
 
 #include <iostream>
 #include <cstdlib>
