@@ -1,6 +1,7 @@
 # (Phys) deconvolution unit tests
 
 dca_add_gtest(deconvolution_routines_test
+  CUDA
   GTEST_MAIN
   INCLUDE_DIRS ${SIMPLEX_GM_RULE_INCLUDE_DIR} ${FFTW_INCLUDE_DIRS}
   LIBS json function cluster_domains  ${DCA_THREADING_LIBS} parallel_util time_and_frequency_domains

@@ -15,6 +15,7 @@ dca_add_gtest(tp_accumulator_singleband_test
   )
 
 dca_add_gtest(tp_accumulator_particle_hole_test
+  CUDA
   FAST
   GTEST_MAIN
   INCLUDE_DIRS ${PROJECT_SOURCE_DIR} ${FFTW_INCLUDE_DIRS} ${HDF5_INCLUDE_DIR}
