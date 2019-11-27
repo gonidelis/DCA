@@ -41,7 +41,6 @@ struct thread_traits {
     static void yield() {
         std::this_thread::yield();
     }
-<<<<<<< HEAD
     //
     template <typename F>
     static void yield_while(F &&f) {
@@ -49,8 +48,6 @@ struct thread_traits {
             std::this_thread::yield();
         }
     }
-=======
->>>>>>> Add abstraction layer for threading library std::thread or hpx::thread
 };
 
 class ThreadPool {

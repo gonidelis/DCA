@@ -25,9 +25,9 @@
 #include <hpx/runtime/threads/thread.hpp>
 #include <hpx/runtime/threads/executors/limiting_executor.hpp>
 #include <hpx/debugging/demangle_helper.hpp>
-#include <hpx/include/parallel_executors.hpp>
+#include <hpx/parallel/executors/parallel_executor.hpp>
 #include <hpx/util/yield_while.hpp>
-
+//
 #include <vector>
 #include <thread>
 #include <algorithm>
@@ -71,8 +71,23 @@ static std::vector<int> affinity_;
 // Returns a list of cores id for which the calling thread has affinity.
 std::vector<int> get_affinity()
 {
-    // do nothing, hpx handles this internally
-    return affinity_;
+  cpu_set_t cpu_set_mask;
+  auto status = sched_getaffinity(0, sizeof(cpu_set_t), &cpu_set_mask);
+
+  if (status == -1) {
+    throw(std::runtime_error("Unable to get thread affinity."));
+  }
+
+  auto cpu_count = CPU_COUNT(&cpu_set_mask);
+
+  std::vector<int> cores;
+  cores.reserve(cpu_count);
+
+  for (auto i = 0; i < CPU_SETSIZE && cores.size() < cpu_count; ++i) {
+      cores.push_back(i);
+  }
+
+  return cores;
 }
 
 // Set a list of cores id for which the calling thread has affinity.
@@ -91,7 +106,7 @@ class ThreadPool {
 public:
   // Creates a pool with n_threads.
   // Actually does nothing, HPX does not need to allocate threads
-  ThreadPool(size_t n_threads = 0) {
+  ThreadPool(size_t n_threads = 1) : exec(500, 500) {
     pool_size = n_threads;
   }
 
@@ -100,25 +115,24 @@ public:
 
   // Conclude all the pending work and destroy the threads spawned by this class.
   ~ThreadPool() {
-//      exec.wait_all();
-      pool_size = 0;
+      exec.wait_all();
   }
 
   void set_task_count_threshold(std::int64_t count)
   {
-//    exec.set_threshold(count, count+1);
+    exec.set_threshold(count, count+1);
   }
 
   void wait_for_tasks()
   {
-//    exec.wait_all();
+    exec.wait_all();
   }
 
   // we don't do anything here, just update the size
   // so that DCA tests pass
   void enlarge(std::size_t n_threads) {
-      //std::cout << "HPX threadpool enlarge: " << n_threads << std::endl;
-      pool_size = (std::max)(n_threads, pool_size);
+      std::cout << "HPX threadpool enlarge: " << n_threads << std::endl;
+      pool_size = n_threads;
   }
 
   // Call asynchronously the function f with arguments args. This method is thread safe.
@@ -134,7 +148,7 @@ public:
     std::cout << "enqueue: Arguments   : "
               << hpx::util::debug::print_type<Args...>(" | ") << std::endl;
 #endif
-    return hpx::async(f, args...);
+    return hpx::async(exec, std::forward<F>(f), std::forward<Args>(args)...);
   }
 
   // We will not be using the pool for a while - put threads to sleep
@@ -146,7 +160,9 @@ public:
   // The DCA unit testing expects the size set to be returned
   // so we ignore the true thread pool size and return what DCA expects
   std::size_t size() const {
-    return pool_size; // hpx::get_num_worker_threads();
+    std::cout << "HPX threadpool size" << std::endl;
+    return pool_size;
+    // return hpx::get_num_worker_threads();
   }
 
   // Returns a static instance.
@@ -166,8 +182,11 @@ public:
 //  hpx::threads::executors::limiting_executor
 //    <hpx::threads::executors::default_executor> exec;
 
-  hpx::parallel::execution::parallel_executor exec;
+  hpx::threads::executors::limiting_executor
+    <hpx::threads::executors::default_executor> exec;
 
+//    hpx::parallel::execution::parallel_executor;
+//    hpx::threads::executors::default_executor;
 };
 
 
@@ -186,10 +205,11 @@ struct hpxthread
     pool.enlarge(num_threads);
 
     // Fork.
+    // Note we do not use std::forward here because we do not want to
+    // accidentally move the same args more than once, we must use copy semantics
     for (int id = 0; id < num_threads; ++id)
       futures.emplace_back(
-          pool.enqueue(std::forward<F>(f),
-            id, num_threads,std::forward<Args>(args)...));
+          pool.enqueue(f, id, num_threads, args...));
 
     // Join.
     for (auto& future : futures)
@@ -210,9 +230,12 @@ struct hpxthread
     pool.enlarge(num_threads);
 
     // Spawn num_threads tasks.
+    // Note we do not use std::forward here because we do not want to
+    // accidentally move the same args more than once, we must use copy semantics
     for (int id = 0; id < num_threads; ++id)
       futures.emplace_back(
-          pool.enqueue(std::forward<F>(f), id, num_threads, std::forward<Args>(args)...));
+          pool.enqueue(f, id, num_threads, args...));
+
     // Sum the result of the tasks.
     ReturnType result = 0;
     for (auto& future : futures)
