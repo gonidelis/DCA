@@ -23,7 +23,7 @@ TEST(ThreadPoolTest, Enqueue) {
   std::iota(input.begin(), input.end(), 0);
 
   auto workload = [](const std::size_t id, const std::vector<int>& inp, std::vector<int>& out) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    hpx::this_thread::sleep_for(std::chrono::milliseconds(5));
     out[id] = inp[id] * inp[id];
   };
 
@@ -61,7 +61,7 @@ TEST(ThreadPoolTest, Enlarge) {
 
   // Dispatch some work to test if queue enlarging breaks running tasks.
   auto workload = [](int id) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    hpx::this_thread::sleep_for(std::chrono::milliseconds(10));
     return id;
   };
   std::vector<dca::parallel::thread_traits::future_type<int>> futures;

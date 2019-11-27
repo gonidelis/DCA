@@ -98,7 +98,7 @@ class ThreadPool {
 public:
   // Creates a pool with n_threads.
     // Actually does nothing, HPX does not need to allocate threads
-  ThreadPool(size_t n_threads = 1) : exec() /*exec(100, 100)*/ {
+  ThreadPool(size_t n_threads = 1) : exec(100, 100) {
     set_task_count_threshold(n_threads-1);
   }
 
@@ -107,17 +107,17 @@ public:
 
   // Conclude all the pending work and destroy the threads spawned by this class.
   ~ThreadPool() {
-//      exec.set_and_wait(0,0);
+      exec.set_and_wait(0,0);
   }
 
   void set_task_count_threshold(std::int64_t count)
   {
-//    exec.set_threshold(count, count);
+    exec.set_threshold(count, count);
   }
 
   void wait_for_tasks()
   {
-//    exec.wait();
+    exec.wait();
   }
 
   // we don't do anything here
@@ -159,10 +159,10 @@ public:
     return global_pool;
   }
 
-//  hpx::threads::executors::limiting_executor
-//    <hpx::threads::executors::default_executor> exec;
+  hpx::threads::executors::limiting_executor
+    <hpx::threads::executors::default_executor> exec;
 
-  hpx::parallel::execution::parallel_executor exec;
+//  hpx::parallel::execution::parallel_executor exec;
 
 };
 

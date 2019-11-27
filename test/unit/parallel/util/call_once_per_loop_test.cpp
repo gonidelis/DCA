@@ -20,7 +20,7 @@ void task(unsigned int loop_id, std::vector<int>& data) {
 
   dca::util::callOncePerLoop(flag, loop_id, [&]() {
     ++data[loop_id];
-    std::this_thread::sleep_for(std::chrono::microseconds(100));
+    hpx::this_thread::sleep_for(std::chrono::microseconds(100));
   });
 }
 
