@@ -71,12 +71,12 @@ public:
   // Returns: number of flop.
   template <class Configuration>
   float accumulate(const std::array<linalg::Matrix<double, linalg::GPU>, 2>& M,
-                   const std::array<Configuration, 2>& configs, int sign);
+                   const std::array<Configuration, 2>& configs, int sign, int concurrency_id = -1);
 
   // CPU input. For testing purposes.
   template <class Configuration>
   float accumulate(const std::array<linalg::Matrix<double, linalg::CPU>, 2>& M,
-                   const std::array<Configuration, 2>& configs, int sign);
+                   const std::array<Configuration, 2>& configs, int sign, int concurrency_id = -1);
 
   // Downloads the accumulation result to the host.
   void finalize();
@@ -294,7 +294,7 @@ template <class Parameters>
 template <class Configuration>
 float TpAccumulator<Parameters, linalg::GPU>::accumulate(
     const std::array<linalg::Matrix<double, linalg::GPU>, 2>& M,
-    const std::array<Configuration, 2>& configs, const int sign) {
+    const std::array<Configuration, 2>& configs, const int sign, int concurrency_id) {
   Profiler profiler("accumulate", "tp-accumulation", __LINE__, thread_id_);
   float flop = 0;
 
@@ -308,6 +308,8 @@ float TpAccumulator<Parameters, linalg::GPU>::accumulate(
   flop += computeM(M, configs);
   computeG();
 
+  // TODO: send G2s around
+
   for (std::size_t channel = 0; channel < G4_.size(); ++channel)
     flop += updateG4(channel);
 
@@ -318,7 +320,7 @@ template <class Parameters>
 template <class Configuration>
 float TpAccumulator<Parameters, linalg::GPU>::accumulate(
     const std::array<linalg::Matrix<double, linalg::CPU>, 2>& M,
-    const std::array<Configuration, 2>& configs, const int sign) {
+    const std::array<Configuration, 2>& configs, const int sign, int concurrency_id) {
   std::array<linalg::Matrix<double, linalg::GPU>, 2> M_dev;
   for (int s = 0; s < 2; ++s)
     M_dev[s].setAsync(M[s], streams_[0]);
@@ -399,6 +401,8 @@ float TpAccumulator<Parameters, linalg::GPU>::updateG4(const std::size_t channel
   //  TODO: set stream only if this thread gets exclusive access to G4.
   //  get_G4().setStream(streams_[0]);
 
+
+  // TODO: Maybe here adding G2 mpi abstraction stuffs
 
   const FourPointType channel = channels_[channel_index];
 
