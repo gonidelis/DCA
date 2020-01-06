@@ -33,6 +33,8 @@
 #include "dca/phys/dca_step/cluster_solver/shared_tools/accumulation/tp/kernels_interface.hpp"
 #include "dca/phys/dca_step/cluster_solver/shared_tools/accumulation/tp/ndft/cached_ndft_gpu.hpp"
 
+#include "include/dca/parallel/mpi_concurrency/mpi_concurrency.hpp"
+
 namespace dca {
 namespace phys {
 namespace solver {
@@ -71,12 +73,12 @@ public:
   // Returns: number of flop.
   template <class Configuration>
   float accumulate(const std::array<linalg::Matrix<double, linalg::GPU>, 2>& M,
-                   const std::array<Configuration, 2>& configs, int sign, int concurrency_id = -1);
+                   const std::array<Configuration, 2>& configs, int sign, int concurrency_id = -1, int mpi_size = 1);
 
   // CPU input. For testing purposes.
   template <class Configuration>
   float accumulate(const std::array<linalg::Matrix<double, linalg::CPU>, 2>& M,
-                   const std::array<Configuration, 2>& configs, int sign, int concurrency_id = -1);
+                   const std::array<Configuration, 2>& configs, int sign, int concurrency_id = -1, int mpi_size = 1);
 
   // Downloads the accumulation result to the host.
   void finalize();
@@ -146,6 +148,8 @@ private:
 
   void computeGSingleband(int s);
 
+  void ringG(int concurrency_id, int mpi_size = 1);
+
   template <class Configuration>
   float computeM(const std::array<linalg::Matrix<double, linalg::GPU>, 2>& M_pair,
                  const std::array<Configuration, 2>& configs);
@@ -187,6 +191,9 @@ private:
   std::array<DftType, 2> space_trsf_objs_;
 
   std::array<RMatrix, 2> G_;
+
+  std::array<RMatrix, 2> sendbuff_G_;
+  std::array<RMatrix, 2> recvbuff_G_;
 
   bool finalized_ = false;
   bool initialized_ = false;
@@ -294,7 +301,7 @@ template <class Parameters>
 template <class Configuration>
 float TpAccumulator<Parameters, linalg::GPU>::accumulate(
     const std::array<linalg::Matrix<double, linalg::GPU>, 2>& M,
-    const std::array<Configuration, 2>& configs, const int sign, int concurrency_id) {
+    const std::array<Configuration, 2>& configs, const int sign, int concurrency_id, int mpi_size) {
   Profiler profiler("accumulate", "tp-accumulation", __LINE__, thread_id_);
   float flop = 0;
 
@@ -308,7 +315,13 @@ float TpAccumulator<Parameters, linalg::GPU>::accumulate(
   flop += computeM(M, configs);
   computeG();
 
+  // lock step algorithm for sending and receiving Gs from different ranks
+  ringG(concurrency_id, mpi_size);
   // TODO: send G2s around
+      // TODO: allocation: resize send and receive buff G_ // cache_ndft_gpu.hpp
+      // TODO: memcopy
+      // TODO: MPI send and receive
+      // TODO: index limitation
 
   for (std::size_t channel = 0; channel < G4_.size(); ++channel)
     flop += updateG4(channel);
@@ -320,12 +333,12 @@ template <class Parameters>
 template <class Configuration>
 float TpAccumulator<Parameters, linalg::GPU>::accumulate(
     const std::array<linalg::Matrix<double, linalg::CPU>, 2>& M,
-    const std::array<Configuration, 2>& configs, const int sign, int concurrency_id) {
+    const std::array<Configuration, 2>& configs, const int sign, int concurrency_id, int mpi_size) {
   std::array<linalg::Matrix<double, linalg::GPU>, 2> M_dev;
   for (int s = 0; s < 2; ++s)
     M_dev[s].setAsync(M[s], streams_[0]);
 
-  return accumulate(M_dev, configs, sign);
+  return accumulate(M_dev, configs, sign, mpi_size);
 }
 
 template <class Parameters>
@@ -369,6 +382,23 @@ void TpAccumulator<Parameters, linalg::GPU>::computeG() {
 
   event_.record(streams_[1]);
   event_.block(streams_[0]);
+}
+
+template <class Parameters>
+void TpAccumulator<Parameters, linalg::GPU>::ringG(int concurrency_id, int mpi_size)
+{
+
+    for (int s = 0; s < 2; ++s)
+    {
+        // copy locally generated G2 to send buff
+        sendbuff_G_[s] = G_[s];
+
+        // allocate send buff G_
+        recvbuff_G_[s].resizeNoCopy(G_[s].size());
+        recvbuff_G_[s].setToZero(streams_[0]);
+    }
+
+
 }
 
 template <class Parameters>
