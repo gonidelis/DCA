@@ -33,6 +33,22 @@
 #include "dca/parallel/mpi_concurrency/mpi_type_map.hpp"
 #include "dca/util/type_utils.hpp"
 
+// TODO: This needs to move
+#include "dca/linalg/reshapable_matrix.hpp"
+
+#include <cassert>
+
+#define MPI_CHECK(stmt)                                          \
+do {                                                             \
+   int mpi_errno = (stmt);                                       \
+   if (MPI_SUCCESS != mpi_errno) {                               \
+       fprintf(stderr, "[%s:%d] MPI call failed with %d \n",     \
+        __FILE__, __LINE__,mpi_errno);                           \
+       exit(EXIT_FAILURE);                                       \
+   }                                                             \
+   assert(MPI_SUCCESS == mpi_errno);                             \
+} while (0)
+
 namespace dca {
 namespace parallel {
 // dca::parallel::
@@ -63,6 +79,19 @@ public:
   // Wrapper to MPI_Reduce.
   template <typename Scalar, class Domain>
   void localSum(func::function<Scalar, Domain>& f, int root_id) const;
+
+  // Wrapper to MPI_Irecv
+  template <typename ScalarType, dca::linalg::DeviceType device>
+  void mpi_irecv(dca::linalg::ReshapableMatrix<ScalarType, device> recv_buff,
+          int source, int tag, MPI_Request* recv_request);
+
+  // Wrapper to MPI_Isend
+  template <typename ScalarType, dca::linalg::DeviceType device>
+  void mpi_isend(dca::linalg::ReshapableMatrix<ScalarType, device> send_buff,
+          int source, int tag, MPI_Request* send_request);
+
+  // Wrapper to MPI_Wait
+  void mpi_wait(MPI_Request * request, MPI_Status * status);
 
   // Delay the execution of sum (implemented with MPI_Allreduce) until 'resolveSums' is called,
   // or 'delayedSum' is called with an object of different Scalar type.
@@ -292,6 +321,26 @@ void MPICollectiveSum::localSum(func::function<scalar_type, domain>& f, int id) 
   sum(f.values(), f_sum.values(), f.size(), id);
 
   f = std::move(f_sum);
+}
+
+template <typename ScalarType, dca::linalg::DeviceType device>
+void MPICollectiveSum::mpi_irecv(dca::linalg::ReshapableMatrix<ScalarType, device> recv_buff,
+               int source, int tag, MPI_Request* recv_request) {
+    MPI_CHECK(MPI_Irecv(recv_buff, recv_buff.size().first()*recv_buff.size().second(),
+                        MPITypeMap<ScalarType>::value(), source, tag, MPI_COMM_WORLD, &recv_request));
+}
+
+template <typename ScalarType, dca::linalg::DeviceType device>
+void MPICollectiveSum::mpi_isend(dca::linalg::ReshapableMatrix<ScalarType, device> send_buff,
+               int source, int tag, MPI_Request* send_request) {
+    MPI_CHECK(MPI_Isend(send_buff, send_buff.size().first()*send_buff.size().second(),
+                        MPITypeMap<ScalarType>::value(), source, tag, MPI_COMM_WORLD, &send_request));
+}
+
+template <typename T>
+void mpi_wait(MPI_Request * request, MPI_Status * status)
+{
+    MPI_CHECK(MPI_Wait(request, status));
 }
 
 template <typename some_type>
