@@ -34,7 +34,6 @@
 #include "dca/phys/dca_step/cluster_solver/shared_tools/accumulation/tp/ndft/cached_ndft_gpu.hpp"
 
 #include "dca/parallel/mpi_concurrency/mpi_concurrency.hpp"
-#include "dca/parallel/mpi_concurrency/mpi_collective_sum.hpp"
 
 #define MOD(x,n) ((x) % (n))
 
@@ -76,14 +75,14 @@ public:
   // Returns: number of flop.
   template <class Configuration>
   float accumulate(const std::array<linalg::Matrix<double, linalg::GPU>, 2>& M,
-                   const std::array<Configuration, 2>& configs, int sign, const dca::parallel::MPIConcurrency& mpiConcurrency
-                   = dca::parallel::MPIConcurrency(0, nullptr));
+                   const std::array<Configuration, 2>& configs, int sign,
+                   const dca::parallel::MPIConcurrency& mpiConcurrency = dca::parallel::MPIConcurrency(0, nullptr));
 
   // CPU input. For testing purposes.
   template <class Configuration>
   float accumulate(const std::array<linalg::Matrix<double, linalg::CPU>, 2>& M,
-                   const std::array<Configuration, 2>& configs, int sign, const dca::parallel::MPIConcurrency& mpiConcurrency
-                    = dca::parallel::MPIConcurrency(0, nullptr));
+                   const std::array<Configuration, 2>& configs, int sign,
+                   const dca::parallel::MPIConcurrency& mpiConcurrency = dca::parallel::MPIConcurrency(0, nullptr));
 
   // Downloads the accumulation result to the host.
   void finalize();
@@ -153,7 +152,7 @@ private:
 
   void computeGSingleband(int s);
 
-  void ringG(int my_concurrency_id, int mpi_size = 1);
+  void ringG(const dca::parallel::MPIConcurrency& mpiConcurrency);
 
   template <class Configuration>
   float computeM(const std::array<linalg::Matrix<double, linalg::GPU>, 2>& M_pair,
@@ -321,7 +320,7 @@ float TpAccumulator<Parameters, linalg::GPU>::accumulate(
   computeG();
 
   // lock step algorithm for sending and receiving Gs from different ranks
-//  ringG(my_concurrency_id, mpi_size);
+  ringG(mpiConcurrency);
   // TODO: send G2s around
       // TODO: allocation: resize send and receive buff G_ // cache_ndft_gpu.hpp
       // TODO: memcopy
@@ -390,16 +389,18 @@ void TpAccumulator<Parameters, linalg::GPU>::computeG() {
 }
 
 template <class Parameters>
-void TpAccumulator<Parameters, linalg::GPU>::ringG(int my_concurrency_id, int mpi_size)
+void TpAccumulator<Parameters, linalg::GPU>::ringG(const dca::parallel::MPIConcurrency& mpiConcurrency)
 {
 
     // sync all processors at the beginning
-    MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+    MPI_Barrier(MPI_COMM_WORLD);
 
     MPI_Request recv_request;
     MPI_Request send_request;
     MPI_Status status;
 
+    int mpi_size = mpiConcurrency.get_size();
+    int my_concurrency_id = mpiConcurrency.get_id();
     int left_neighbor = MOD((my_concurrency_id-1 + mpi_size), mpi_size);
     int right_neighbor = MOD((my_concurrency_id+1 + mpi_size), mpi_size);
 
@@ -415,7 +416,7 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(int my_concurrency_id, int mp
     }
 
     // sync all processors at the end
-    MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+    MPI_Barrier(MPI_COMM_WORLD);
 
     for(int i = 0; i < niter; i++)
     {
@@ -439,21 +440,20 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(int my_concurrency_id, int mp
                 recv_tag = 1 + MOD(recv_tag-1, MPI_TAG_UB); // just to be safe, then 1 <= tag <= MPI_TAG_UB
 
                 // for loop for s
-                dca::parallel::MPICollectiveSum::mpi_irecv(recvbuff_G_[s], left_neighbor, recv_tag, &recv_request);
-//                mpi_isend(sendbuff_G_[s], right_neighbor, send_tag, &send_request);
+                mpiConcurrency.mpi_irecv(recvbuff_G_[s], left_neighbor, recv_tag, &recv_request);
+                mpiConcurrency.mpi_isend(sendbuff_G_[s], right_neighbor, send_tag, &send_request);
 
-//                mpi_wait(&recv_request, &status);
+                mpiConcurrency.mpi_wait(&recv_request, &status);
                 G_[s] = recvbuff_G_[s];
                 //update_local_G4(G2, G4, my_concurrency_id, n_elems);
-//                mpi_wait(&send_request, &status); // wait for sendbuf_G2 to be available again
+                mpiConcurrency.mpi_wait(&send_request, &status); // wait for sendbuf_G2 to be available again
 
                 // get ready for send
-//                sendbuff_G_[s] = G_[s];
+                sendbuff_G_[s] = G_[s];
                 send_tag = recv_tag;
             }
         }
     }
-
 }
 
 template <class Parameters>
