@@ -71,12 +71,12 @@ public:
 
   // Wrapper to MPI_Irecv
   template <typename ScalarType, dca::linalg::DeviceType device>
-  void mpi_irecv(dca::linalg::ReshapableMatrix<ScalarType, device> recv_buff,
+  void mpi_irecv(dca::linalg::ReshapableMatrix<ScalarType, device>* recv_buff,
           int source, int tag, MPI_Request* recv_request) const;
 
   // Wrapper to MPI_Isend
   template <typename ScalarType, dca::linalg::DeviceType device>
-  void mpi_isend(dca::linalg::ReshapableMatrix<ScalarType, device> send_buff,
+  void mpi_isend(dca::linalg::ReshapableMatrix<ScalarType, device>* send_buff,
           int source, int tag, MPI_Request* send_request) const;
 
   // Wrapper to MPI_Wait
@@ -313,17 +313,25 @@ void MPICollectiveSum::localSum(func::function<scalar_type, domain>& f, int id) 
 }
 
 template <typename ScalarType, dca::linalg::DeviceType device>
-void MPICollectiveSum::mpi_irecv(dca::linalg::ReshapableMatrix<ScalarType, device> recv_buff,
+void MPICollectiveSum::mpi_irecv(dca::linalg::ReshapableMatrix<ScalarType, device>* recv_buff,
                int source, int tag, MPI_Request* recv_request) const {
-    size_t sz = (recv_buff.size().first)*(recv_buff.size().second);
-    MPI_Irecv(recv_buff.ptr(), sz, MPITypeMap<ScalarType>::value(), source, tag, MPI_COMM_WORLD, recv_request);
+    size_t sz = (recv_buff->size().first)*(recv_buff->size().second);
+    char name[MPI_MAX_OBJECT_NAME];
+    int namelen, i;
+    MPI_Type_get_name(MPITypeMap<ScalarType>::value(), name, &namelen);
+    std::cout << "recv_buff MPITypeMap<ScalarType>::value() is " << name << "\n";
+    MPI_Irecv(recv_buff, sz, MPITypeMap<ScalarType>::value(), source, tag, MPI_COMM_WORLD, recv_request);
 }
 
 template <typename ScalarType, dca::linalg::DeviceType device>
-void MPICollectiveSum::mpi_isend(dca::linalg::ReshapableMatrix<ScalarType, device> send_buff,
+void MPICollectiveSum::mpi_isend(dca::linalg::ReshapableMatrix<ScalarType, device>* send_buff,
                int source, int tag, MPI_Request* send_request) const {
-    size_t sz = (send_buff.size().first)*(send_buff.size().second);
-    MPI_Isend(send_buff.ptr(), sz, MPITypeMap<ScalarType>::value(), source, tag, MPI_COMM_WORLD, send_request);
+    size_t sz = (send_buff->size().first)*(send_buff->size().second);
+    char name[MPI_MAX_OBJECT_NAME];
+    int namelen, i;
+    MPI_Type_get_name(MPITypeMap<ScalarType>::value(), name, &namelen);
+    std::cout << "recv_buff MPITypeMap<ScalarType>::value() is " << name << "\n";
+    MPI_Isend(send_buff, sz, MPITypeMap<ScalarType>::value(), source, tag, MPI_COMM_WORLD, send_request);
 }
 
 template <typename some_type>
