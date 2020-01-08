@@ -408,7 +408,7 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(const dca::parallel::MPIConcu
 
     // number of G2s
     // TODO: confirm niter
-//    int niter = mpi_size;
+    int niter = mpi_size;
 
     for (int s = 0; s < 2; ++s)
     {
@@ -420,22 +420,22 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(const dca::parallel::MPIConcu
     // sync all processors at the end
     MPI_Barrier(MPI_COMM_WORLD);
 
-//    for(int i = 0; i < niter; i++)
-//    {
+    for(int i = 0; i < niter; i++)
+    {
         // generate G2 and fill some value in
         // generateG2(G2, rank, n_elems);
         // update_local_G4(G2, G4, rank, n_elems);
 
         // get ready for send
 
-    float* sendbuff_G2 = nullptr;
-    float* recvbuff_G2 = nullptr;
-    std::size_t n = 4;
-    cudaError_t ret1 = cudaMalloc((void**) &sendbuff_G2, n* sizeof(float));
-    cudaError_t ret2 = cudaMalloc((void**) &recvbuff_G2, n* sizeof(float));
-    if (ret1 != cudaSuccess || ret2 != cudaSuccess) {
-        std::cout << "error allocation!!!!!\n";
-    }
+        float* sendbuff_G2 = nullptr;
+        float* recvbuff_G2 = nullptr;
+        std::size_t n = 4;
+        cudaError_t ret1 = cudaMalloc((void**) &sendbuff_G2, n* sizeof(float));
+        cudaError_t ret2 = cudaMalloc((void**) &recvbuff_G2, n* sizeof(float));
+        if (ret1 != cudaSuccess || ret2 != cudaSuccess) {
+            std::cout << "error allocation!!!!!\n";
+        }
         for (int s = 0; s < 2; ++s) {
             // copy locally generated G2 to send buff
             sendbuff_G_[s] = G_[s];
@@ -449,18 +449,18 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(const dca::parallel::MPIConcu
                 int recv_tag = 1 + originator_irank;
                 recv_tag = 1 + MOD(recv_tag-1, MPI_TAG_UB); // just to be safe, then 1 <= tag <= MPI_TAG_UB
 
-//                // for loop for s
-//                mpiConcurrency.mpi_irecv(&recvbuff_G_[s], left_neighbor, recv_tag, &recv_request);
-//                mpiConcurrency.mpi_isend(&sendbuff_G_[s], right_neighbor, send_tag, &send_request);
+    //                // for loop for s
+    //                mpiConcurrency.mpi_irecv(&recvbuff_G_[s], left_neighbor, recv_tag, &recv_request);
+    //                mpiConcurrency.mpi_isend(&sendbuff_G_[s], right_neighbor, send_tag, &send_request);
 
                 MPI_Irecv(recvbuff_G_[s].ptr(), (recvbuff_G_[s].size().first)*(recvbuff_G_[s].size().second), MPI_DOUBLE_COMPLEX, left_neighbor, recv_tag, MPI_COMM_WORLD, &recv_request);
                 MPI_Isend(sendbuff_G_[s].ptr(), (sendbuff_G_[s].size().first)*(sendbuff_G_[s].size().second), MPI_DOUBLE_COMPLEX, right_neighbor, send_tag, MPI_COMM_WORLD, &send_request);
                 MPI_Wait(&recv_request, &status); // wait for recvbuf_G2 to be available again
 
-//                mpiConcurrency.mpi_wait(&recv_request, &status);
+    //                mpiConcurrency.mpi_wait(&recv_request, &status);
                 G_[s] = recvbuff_G_[s];
                 //update_local_G4(G2, G4, my_concurrency_id, n_elems);
-//                mpiConcurrency.mpi_wait(&send_request, &status); // wait for sendbuf_G2 to be available again
+    //                mpiConcurrency.mpi_wait(&send_request, &status); // wait for sendbuf_G2 to be available again
                 MPI_Wait(&send_request, &status); // wait for sendbuf_G2 to be available again
 
                 // get ready for send
@@ -469,7 +469,7 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(const dca::parallel::MPIConcu
             }
             MPI_Barrier(MPI_COMM_WORLD);
         }
-//    }
+    }
     // sync all processors at the end
     MPI_Barrier(MPI_COMM_WORLD);
 }
