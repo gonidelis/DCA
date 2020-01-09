@@ -35,8 +35,6 @@
 
 #include "dca/parallel/mpi_concurrency/mpi_concurrency.hpp"
 
-#include <cuda.h>
-
 #define MOD(x,n) ((x) % (n))
 
 namespace dca {
@@ -324,9 +322,9 @@ float TpAccumulator<Parameters, linalg::GPU>::accumulate(
   // lock step algorithm for sending and receiving Gs from different ranks
   ringG(mpiConcurrency);
   // TODO: send G2s around
-      // TODO: allocation: resize send and receive buff G_ // cache_ndft_gpu.hpp
-      // TODO: memcopy
-      // TODO: MPI send and receive
+      // DONE: allocation: resize send and receive buff G_ // cache_ndft_gpu.hpp
+      // DONE: memcopy
+      // DONE: MPI send and receive
       // TODO: index limitation
 
   for (std::size_t channel = 0; channel < G4_.size(); ++channel)
@@ -417,25 +415,36 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(const dca::parallel::MPIConcu
         recvbuff_G_[s].setToZero(streams_[0]);
     }
 
+//    float *hostArray = nullptr;
+//    hostArray= (float*)malloc(4*sizeof(float));
+//    for(int i = 0; i < 4; i++)
+//    {
+//        hostArray[i] = (float) my_concurrency_id;
+//    }
+//    float* sendbuff_G2 = nullptr;
+//    float* recvbuff_G2 = nullptr;
+//    float* G2 = nullptr;
+//    cudaError_t ret1 = cudaMalloc((void**)&sendbuff_G2, 4 * sizeof(float));
+//    cudaError_t ret2 = cudaMalloc((void**)&recvbuff_G2, 4 * sizeof(float));
+//    cudaError_t ret3 = cudaMalloc((void**)&G2, 4 * sizeof(float));
+//    cudaMemcpy(G2, hostArray,4 * sizeof(float),cudaMemcpyHostToDevice);
+
     // sync all processors at the end
     MPI_Barrier(MPI_COMM_WORLD);
 
-    for(int i = 0; i < niter; i++)
-    {
+//    cudaMemcpy(hostArray, G2, 4 * sizeof(float),cudaMemcpyDeviceToHost);
+//    std::cout << "my rank is " << my_concurrency_id
+//              << " and before ring G my value is " << hostArray[0] << "\n";
+
+//    for(int i = 0; i < niter; i++)
+//    {
         // generate G2 and fill some value in
         // generateG2(G2, rank, n_elems);
         // update_local_G4(G2, G4, rank, n_elems);
 
         // get ready for send
+//        cudaMemcpy(sendbuff_G2, G2, 4 * sizeof(float), cudaMemcpyDeviceToDevice);
 
-        float* sendbuff_G2 = nullptr;
-        float* recvbuff_G2 = nullptr;
-        std::size_t n = 4;
-        cudaError_t ret1 = cudaMalloc((void**) &sendbuff_G2, n* sizeof(float));
-        cudaError_t ret2 = cudaMalloc((void**) &recvbuff_G2, n* sizeof(float));
-        if (ret1 != cudaSuccess || ret2 != cudaSuccess) {
-            std::cout << "error allocation!!!!!\n";
-        }
         for (int s = 0; s < 2; ++s) {
             // copy locally generated G2 to send buff
             sendbuff_G_[s] = G_[s];
@@ -455,21 +464,33 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(const dca::parallel::MPIConcu
 
                 MPI_Irecv(recvbuff_G_[s].ptr(), (recvbuff_G_[s].size().first)*(recvbuff_G_[s].size().second), MPI_DOUBLE_COMPLEX, left_neighbor, recv_tag, MPI_COMM_WORLD, &recv_request);
                 MPI_Isend(sendbuff_G_[s].ptr(), (sendbuff_G_[s].size().first)*(sendbuff_G_[s].size().second), MPI_DOUBLE_COMPLEX, right_neighbor, send_tag, MPI_COMM_WORLD, &send_request);
+
+//                MPI_Irecv(recvbuff_G2, (size_t) 4, MPI_FLOAT, left_neighbor, recv_tag, MPI_COMM_WORLD, &recv_request);
+//                MPI_Isend(sendbuff_G2, (size_t) 4, MPI_FLOAT, right_neighbor, send_tag, MPI_COMM_WORLD, &send_request);
+
                 MPI_Wait(&recv_request, &status); // wait for recvbuf_G2 to be available again
 
-    //                mpiConcurrency.mpi_wait(&recv_request, &status);
+                    mpiConcurrency.mpi_wait(&recv_request, &status);
+//                cudaMemcpy(G2, recvbuff_G2, 4 * sizeof(float), cudaMemcpyDeviceToDevice);
+
+//                cudaMemcpy(hostArray, G2, 4 * sizeof(float),cudaMemcpyDeviceToHost);
+//                std::cout << "my rank is " << my_concurrency_id
+//                          << " and after 1 iter ring G my value is " << hostArray[0] << "\n";
+
                 G_[s] = recvbuff_G_[s];
                 //update_local_G4(G2, G4, my_concurrency_id, n_elems);
     //                mpiConcurrency.mpi_wait(&send_request, &status); // wait for sendbuf_G2 to be available again
                 MPI_Wait(&send_request, &status); // wait for sendbuf_G2 to be available again
 
                 // get ready for send
+//                cudaMemcpy(sendbuff_G2, G2, 4 * sizeof(float), cudaMemcpyDeviceToDevice);
                 sendbuff_G_[s] = G_[s];
                 send_tag = recv_tag;
             }
             MPI_Barrier(MPI_COMM_WORLD);
         }
-    }
+//    }
+
     // sync all processors at the end
     MPI_Barrier(MPI_COMM_WORLD);
 }
