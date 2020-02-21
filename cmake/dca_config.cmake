@@ -31,7 +31,7 @@ configure_file("${PROJECT_SOURCE_DIR}/include/dca/config/threading.hpp.in"
 
 ################################################################################
 # Enable CUDA.
-option(DCA_WITH_CUDA "Enable GPU support." ON)
+option(DCA_WITH_CUDA "Enable GPU support." OFF)
 
 if (DCA_WITH_CUDA)
   include(dca_cuda)
