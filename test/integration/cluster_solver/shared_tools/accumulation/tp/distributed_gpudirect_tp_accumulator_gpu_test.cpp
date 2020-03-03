@@ -62,7 +62,7 @@ TEST_F(DistributedTpAccumulatorGpuTest, Accumulate) {
     auto& concurrency = parameters_.get_concurrency();
 
     accumulatorDevice.resetAccumulation(loop_counter);
-    accumulatorDevice.accumulate(M, config, sign, concurrency);
+    accumulatorDevice.accumulate(M, config, sign);
     accumulatorDevice.finalize();
 
     ++loop_counter;
