@@ -217,6 +217,10 @@ __global__ void updateG4Kernel(CudaComplex<Real>* __restrict__ G4,
   auto cond_conj = [](const CudaComplex<Real> a, const bool cond) { return cond ? conj(a) : a; };
 
 for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
+    if(w1 != w_i)
+        return;
+    else {
+
     // Compute the contribution to G4. In all the products of Green's function of type Ga * Gb,
     // the dependency on the bands is implied as Ga(b1, b2) * Gb(b2, b3). Sums and differences with
     // the exchange momentum, implies the same operation is performed with the exchange frequency.
@@ -224,7 +228,7 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
     switch (type) {
         case PARTICLE_HOLE_TRANSVERSE: {
             // contribution <- -\sum_s G(k1, k2, s) * G(k2 + k_ex, k1 + k_ex, -s)
-            int w1_a(w1);
+            int w1_a(w_i);
             int w2_a(w2);
             int k1_a(k1);
             int k2_a(k2);
@@ -236,7 +240,7 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
             const CudaComplex <Real> Ga_2 = cond_conj(G_down[i_a + ldgd * j_a], conj_a);
 
             int w1_b(g4_helper.addWex(w2, w_ex));
-            int w2_b(g4_helper.addWex(w1, w_ex));
+            int w2_b(g4_helper.addWex(w_i, w_ex));
             int k1_b = g4_helper.addKex(k2, k_ex);
             int k2_b = g4_helper.addKex(k1, k_ex);
             const bool conj_b = g4_helper.extendGIndices(k1_b, k2_b, w1_b, w2_b);
@@ -253,7 +257,7 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
             // The PARTICLE_HOLE_MAGNETIC contribution is computed in two parts:
         case PARTICLE_HOLE_MAGNETIC: {
             // contribution <- -\sum_s G(k1, k2, s) * G(k2 + k_ex, k1 + k_ex, s)
-            int w1_a(w1);
+            int w1_a(w_i);
             int w2_a(w2);
             int k1_a(k1);
             int k2_a(k2);
@@ -264,7 +268,7 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
             const CudaComplex <Real> Ga_2 = cond_conj(G_down[i_a + ldgd * j_a], conj_a);
 
             int w1_b(g4_helper.addWex(w2, w_ex));
-            int w2_b(g4_helper.addWex(w1, w_ex));
+            int w2_b(g4_helper.addWex(w_i, w_ex));
             int k1_b = g4_helper.addKex(k2, k_ex);
             int k2_b = g4_helper.addKex(k1, k_ex);
             const bool conj_b = g4_helper.extendGIndices(k1_b, k2_b, w1_b, w2_b);
@@ -281,8 +285,8 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
             // new scope to reuse local index variables
             {
                 // contribution += (\sum_s s * G(k1, k1 + k_ex)) * (\sum_s s * G(k2 + k_ex, k2))
-                int w1_a(w1);
-                int w2_a(g4_helper.addWex(w1, w_ex));
+                int w1_a(w_i);
+                int w2_a(g4_helper.addWex(w_i, w_ex));
                 int k1_a = k1;
                 int k2_a = g4_helper.addKex(k1, k_ex);
                 const bool conj_a = g4_helper.extendGIndices(k1_a, k2_a, w1_a, w2_a);
@@ -310,7 +314,7 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
             // The PARTICLE_HOLE_CHARGE contribution is computed in two parts:
         case PARTICLE_HOLE_CHARGE: {
             // contribution <- -\sum_s G(k1, k2, s) * G(k2 + k_ex, k1 + k_ex, s)
-            int w1_a(w1);
+            int w1_a(w_i);
             int w2_a(w2);
             int k1_a(k1);
             int k2_a(k2);
@@ -322,7 +326,7 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
             const CudaComplex <Real> Ga_2 = cond_conj(G_down[i_a + ldgd * j_a], conj_a);
 
             int w1_b(g4_helper.addWex(w2, w_ex));
-            int w2_b(g4_helper.addWex(w1, w_ex));
+            int w2_b(g4_helper.addWex(w_i, w_ex));
             int k1_b = g4_helper.addKex(k2, k_ex);
             int k2_b = g4_helper.addKex(k1, k_ex);
             const bool conj_b = g4_helper.extendGIndices(k1_b, k2_b, w1_b, w2_b);
@@ -340,8 +344,8 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
             {
                 // contribution += (\sum_s G(k1, k1 + k_ex, s)) * (\sum_s G(k2 + k_ex, k2, s))
                 // TODO: pull into function, index setting code is identical for Spin cases
-                int w1_a(w1);
-                int w2_a(g4_helper.addWex(w1, w_ex));
+                int w1_a(w_i);
+                int w2_a(g4_helper.addWex(w_i, w_ex));
                 int k1_a = k1;
                 int k2_a = g4_helper.addKex(k1, k_ex);
                 const bool conj_a = g4_helper.extendGIndices(k1_a, k2_a, w1_a, w2_a);
@@ -369,8 +373,8 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
             // The PARTICLE_HOLE_LONGITUDINAL_UP_UP contribution is computed in two parts:
         case PARTICLE_HOLE_LONGITUDINAL_UP_UP: {
             // contribution <- \sum_s G(k1, k1+k_ex, s) * G(k2+k_ex, k2, s)
-            int w1_a(w1);
-            int w2_a(g4_helper.addWex(w1, w_ex));
+            int w1_a(w_i);
+            int w2_a(g4_helper.addWex(w_i, w_ex));
             int k1_a = k1;
             int k2_a = g4_helper.addKex(k1, k_ex);
             const bool conj_a = g4_helper.extendGIndices(k1_a, k2_a, w1_a, w2_a);
@@ -395,7 +399,7 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
         }
             {
                 // contribution <- -\sum_s G(k1, k2, s) * G(k2 + k_ex, k1 + k_ex, s)
-                int w1_a(w1);
+                int w1_a(w_i);
                 int w2_a(w2);
                 int k1_a(k1);
                 int k2_a(k2);
@@ -407,7 +411,7 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
                 const CudaComplex <Real> Ga_2 = cond_conj(G_down[i_a + ldgd * j_a], conj_a);
 
                 int w1_b(g4_helper.addWex(w2, w_ex));
-                int w2_b(g4_helper.addWex(w1, w_ex));
+                int w2_b(g4_helper.addWex(w_i, w_ex));
                 int k1_b = g4_helper.addKex(k2, k_ex);
                 int k2_b = g4_helper.addKex(k1, k_ex);
                 const bool conj_b = g4_helper.extendGIndices(k1_b, k2_b, w1_b, w2_b);
@@ -423,8 +427,8 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
 
         case PARTICLE_HOLE_LONGITUDINAL_UP_DOWN: {
             // contribution <- \sum_s G(k1, k1+k_ex, s) * G(k2+k_ex, k2, -s)
-            int w1_a(w1);
-            int w2_a(g4_helper.addWex(w1, w_ex));
+            int w1_a(w_i);
+            int w2_a(g4_helper.addWex(w_i, w_ex));
             int k1_a = k1;
             int k2_a = g4_helper.addKex(k1, k_ex);
             const bool conj_a = g4_helper.extendGIndices(k1_a, k2_a, w1_a, w2_a);
@@ -451,7 +455,7 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
 
         case PARTICLE_PARTICLE_UP_DOWN: {
             // contribution <- -\sum_s G(k_ex - k2, k_ex - k1, s) * G(k2, k1, -s).
-            int w1_a(w1);
+            int w1_a(w_i);
             int w2_a(w2);
             int k1_a(k1);
             int k2_a(k2);
@@ -462,7 +466,7 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
             const CudaComplex <Real> Ga_1 = cond_conj(G_up[i_a + ldgu * j_a], conj_a);
             const CudaComplex <Real> Ga_2 = cond_conj(G_down[i_a + ldgd * j_a], conj_a);
 
-            int w1_b(g4_helper.wexMinus(w1, w_ex));
+            int w1_b(g4_helper.wexMinus(w_i, w_ex));
             int w2_b(g4_helper.wexMinus(w2, w_ex));
             int k1_b = g4_helper.kexMinus(k1, k_ex);
             int k2_b = g4_helper.kexMinus(k2, k_ex);
@@ -481,12 +485,13 @@ for (int w_i = 1 + my_rank; w_i <= nw; w_i += mpi_size) {
     }
 
     CudaComplex <Real> *const result_ptr =
-            G4 + g4_helper.g4Index(b1, b2, b3, b4, k1, w1, k2, w2, k_ex, w_ex);
+            G4 + g4_helper.g4Index(b1, b2, b3, b4, k1, w_i, k2, w2, k_ex, w_ex);
 
     if (atomic)
         dca::linalg::atomicAdd(result_ptr, contribution * 0.5 * sign);
     else
         *result_ptr += contribution * 0.5 * sign;
+}
 }
 }
 

@@ -348,8 +348,11 @@ float TpAccumulator<Parameters, linalg::GPU>::accumulate(
 
     for (int s = 0; s < 2; ++s)
     {
-        // allocate send buff G_
-        recvbuff_G_[s]= G_[0];
+        // allocate recvbuff_G_ buff G_
+        recvbuff_G_[s]= G_[s];
+
+        // copy locally generated G2 to send buff
+        sendbuff_G_[s] = G_[s];
     }
     for (std::size_t channel = 0; channel < G4_.size(); ++channel)
         flop += updateG4(channel);
@@ -357,9 +360,7 @@ float TpAccumulator<Parameters, linalg::GPU>::accumulate(
     MPI_Barrier(MPI_COMM_WORLD);
 
 //    for (int s = 0; s < 2; ++s) {
-    // copy locally generated G2 to send buff
-    sendbuff_G_[0] = G_[0];
-    sendbuff_G_[1] = G_[1];
+
 
     int send_tag = 1 + my_concurrency_id;
     send_tag = 1 + MOD(send_tag-1, MPI_TAG_UB); // just to be safe, MPI_TAG_UB is largest tag value

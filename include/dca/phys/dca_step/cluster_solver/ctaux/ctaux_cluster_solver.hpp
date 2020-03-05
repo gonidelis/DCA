@@ -452,7 +452,10 @@ void CtauxClusterSolver<device_t, Parameters, Data>::collect_measurements() {
         if (compute_jack_knife_)
           concurrency_.leaveOneOutSum(G4);
         else
-          concurrency_.localSum(G4, concurrency_.first());
+        {
+            std::cout << "\n**************local SUM************\n";
+            concurrency_.localSum(G4, concurrency_.first());
+        }
       }
     }
 

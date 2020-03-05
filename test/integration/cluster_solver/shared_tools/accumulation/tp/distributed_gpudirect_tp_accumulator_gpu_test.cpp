@@ -87,17 +87,17 @@ TEST_F(DistributedTpAccumulatorGpuTest, Accumulate) {
         auto G4_gpu = accumulatorDevice.get_sign_times_G4()[channel];
         auto G4_cpu = accumulatorHost.get_sign_times_G4()[channel];
         concurrency_.localSum(G4_gpu, concurrency.first());
-        concurrency_.localSum(G4_cpu, concurrency.first());
+//        concurrency_.localSum(G4_cpu, concurrency.first());
         if (concurrency.get_id() == 0){
 //            G4s[channel] *= concurrency.number_of_processors();
 //            const auto diff_mpi_allreduce = dca::func::util::difference(G4, G4s[channel]);
 //            EXPECT_DOUBLE_EQ(0, diff_mpi_allreduce.l1);
 //            EXPECT_DOUBLE_EQ(0, diff_mpi_allreduce.l2);
 //            EXPECT_DOUBLE_EQ(0, diff_mpi_allreduce.l_inf);
-            const auto diff = dca::func::util::difference(G4_cpu, G4_cpu);
-            EXPECT_DOUBLE_EQ(0, diff.l1);
-            EXPECT_DOUBLE_EQ(0, diff.l2);
-            EXPECT_DOUBLE_EQ(0, diff.l_inf);
+//            G4s_cpu[channel] *= concurrency.number_of_processors();
+            const auto diff = dca::func::util::difference(G4_gpu, G4_cpu);
+//            const auto diff = dca::func::util::difference(G4_gpu, accumulatorHost.get_sign_times_G4()[channel]);
+            EXPECT_GT(5e-7, diff.l_inf);
         }
     }
 }
