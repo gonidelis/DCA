@@ -45,7 +45,7 @@ public:
 
   void waitForQmciWalker();
 
-  void measure();
+  void measure(hpx::lcos::local::barrier& b);
 
   // Sums all accumulated objects of this accumulator to the equivalent objects of the 'other'
   // accumulator.
@@ -105,14 +105,14 @@ void StdThreadQmciAccumulator<QmciAccumulator>::waitForQmciWalker() {
 }
 
 template <class QmciAccumulator>
-void StdThreadQmciAccumulator<QmciAccumulator>::measure() {
+void StdThreadQmciAccumulator<QmciAccumulator>::measure(hpx::lcos::local::barrier& b) {
   dca::parallel::thread_traits::scoped_lock lock(mutex_accumulator_);
 
   if (done_)
     return;
   assert(measuring_);
 
-  QmciAccumulator::measure();
+  QmciAccumulator::measure(b);
   measuring_ = false;
 }
 

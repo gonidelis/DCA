@@ -138,7 +138,7 @@ public:
 
   // We will not be using the pool for a while - put threads to sleep
   void suspend() {
-      hpx::suspend();
+//      hpx::suspend();
   }
 
   // Returns the number of threads used by this class.

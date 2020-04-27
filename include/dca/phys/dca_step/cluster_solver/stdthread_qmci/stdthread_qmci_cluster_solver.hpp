@@ -31,6 +31,8 @@
 #include "dca/profiling/events/time.hpp"
 #include "dca/util/print_time.hpp"
 
+#include <hpx/include/lcos.hpp>
+
 namespace dca {
 namespace phys {
 namespace solver {
@@ -62,16 +64,16 @@ public:
   double finalize(dca_info_struct_t& dca_info_struct);
 
 private:
-  void startWalker(int id);
-  void startAccumulator(int id);
-  void startWalkerAndAccumulator(int id);
+  void startWalker(int id, hpx::lcos::local::barrier& b);
+  void startAccumulator(int id, hpx::lcos::local::barrier& b);
+  void startWalkerAndAccumulator(int id, hpx::lcos::local::barrier& b);
 
   void initializeAndWarmUp(Walker& walker, int id, int walker_id);
 
   void readConfigurations();
   void writeConfigurations() const;
 
-  void iterateOverLocalMeasurements(int walker_id, std::function<void(int, int, bool)>&& f);
+  void iterateOverLocalMeasurements(int walker_id, hpx::lcos::local::barrier& b, std::function<void(int, int, bool)>&& f);
 
   void printIntegrationMetadata() const;
 
@@ -164,14 +166,16 @@ void StdThreadQmciClusterSolver<QmciSolver>::integrate() {
 
   dca::profiling::WallTime start_time;
 
+  hpx::lcos::local::barrier b1(2);
+
   auto& pool = dca::parallel::ThreadPool::get_instance();
   for (int i = 0; i < thread_task_handler_.size(); ++i) {
     if (thread_task_handler_.getTask(i) == "walker")
-      futures.emplace_back(pool.enqueue(&ThisType::startWalker, this, i));
+      futures.emplace_back(pool.enqueue(&ThisType::startWalker, this, i, std::ref(b1)));
     else if (thread_task_handler_.getTask(i) == "accumulator")
-      futures.emplace_back(pool.enqueue(&ThisType::startAccumulator, this, i));
+      futures.emplace_back(pool.enqueue(&ThisType::startAccumulator, this, i, std::ref(b1)));
     else if (thread_task_handler_.getTask(i) == "walker and accumulator")
-      futures.emplace_back(pool.enqueue(&ThisType::startWalkerAndAccumulator, this, i));
+      futures.emplace_back(pool.enqueue(&ThisType::startWalkerAndAccumulator, this, i, std::ref(b1)));
     else
       throw std::logic_error("Thread task is undefined.");
   }
@@ -194,7 +198,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::integrate() {
     print_metadata();
     throw;
   }
-
+    MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
   print_metadata();
 
   QmciSolver::accumulator_.finalize();
@@ -216,7 +220,7 @@ double StdThreadQmciClusterSolver<QmciSolver>::finalize(dca_info_struct_t& dca_i
 }
 
 template <class QmciSolver>
-void StdThreadQmciClusterSolver<QmciSolver>::startWalker(int id) {
+void StdThreadQmciClusterSolver<QmciSolver>::startWalker(int id, hpx::lcos::local::barrier &b) {
   Profiler::start_threading(id);
   if (id == 0) {
     if (concurrency_.id() == concurrency_.first())
@@ -232,7 +236,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalker(int id) {
     initializeAndWarmUp(walker, id, walker_index);
 
     iterateOverLocalMeasurements(
-        walker_index, [&](const int meas_id, const int tot_meas, const bool print) {
+        walker_index, b, [&](const int meas_id, const int tot_meas, const bool print) {
           StdThreadAccumulatorType* acc_ptr = nullptr;
 
           {
@@ -325,7 +329,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::initializeAndWarmUp(Walker& walker,
 
 template <class QmciSolver>
 void StdThreadQmciClusterSolver<QmciSolver>::iterateOverLocalMeasurements(
-    const int walker_id, std::function<void(int, int, bool)>&& f) {
+    const int walker_id, hpx::lcos::local::barrier& b, std::function<void(int, int, bool)>&& f) {
   const bool fix_thread_meas = parameters_.fix_meas_per_walker();
   const int total_meas = parallel::util::getWorkload(parameters_.get_measurements(), concurrency_);
 
@@ -347,7 +351,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::iterateOverLocalMeasurements(
 }
 
 template <class QmciSolver>
-void StdThreadQmciClusterSolver<QmciSolver>::startAccumulator(int id) {
+void StdThreadQmciClusterSolver<QmciSolver>::startAccumulator(int id, hpx::lcos::local::barrier& b) {
   Profiler::start_threading(id);
 
   StdThreadAccumulatorType accumulator_obj(parameters_, data_, id);
@@ -373,7 +377,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startAccumulator(int id) {
 
       {
         Profiler profiler("accumulating", "stdthread-MC-accumulator", __LINE__, id);
-        accumulator_obj.measure();
+        accumulator_obj.measure(b);
       }
     }
   }
@@ -399,7 +403,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startAccumulator(int id) {
 }
 
 template <class QmciSolver>
-void StdThreadQmciClusterSolver<QmciSolver>::startWalkerAndAccumulator(int id) {
+void StdThreadQmciClusterSolver<QmciSolver>::startWalkerAndAccumulator(int id, hpx::lcos::local::barrier& b) {
   Profiler::start_threading(id);
 
   // Create and warm a walker.
@@ -412,7 +416,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalkerAndAccumulator(int id) {
   std::unique_ptr<std::exception> current_exception;
 
   try {
-    iterateOverLocalMeasurements(id, [&](const int meas_id, const int n_meas, const bool print) {
+    iterateOverLocalMeasurements(id, b, [&](const int meas_id, const int n_meas, const bool print) {
       {
         Profiler profiler("Walker updating", "stdthread-MC", __LINE__, id);
         walker.doSweep();
@@ -420,7 +424,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalkerAndAccumulator(int id) {
       {
         Profiler profiler("Accumulator measuring", "stdthread-MC", __LINE__, id);
         accumulator_obj.updateFrom(walker);
-        accumulator_obj.measure();
+        accumulator_obj.measure(b);
       }
       if (print)
         walker.updateShell(meas_id, n_meas);

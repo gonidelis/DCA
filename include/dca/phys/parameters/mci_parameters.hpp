@@ -283,7 +283,7 @@ void MciParameters::readWrite(ReaderOrWriter& reader_or_writer) {
 
       if(nvlink_enabled_)
       {
-        if(!shared_walk_and_accumulation_thread_ || walkers_ != accumulators_ || walkers_ !=1 || accumulators_ != 1)
+        if(!shared_walk_and_accumulation_thread_ || walkers_ != accumulators_)
         {
             std::cout << "\n With NVLink enabled, 1) walker and accumulator must share thread, "
                          "2) #walker == #accumulator, 3) #threads in DCA must set to 1\n";

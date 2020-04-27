@@ -92,7 +92,7 @@ public:
   template <typename walker_type>
   void updateFrom(walker_type& walker);
 
-  void measure();
+  void measure(hpx::lcos::local::barrier &b);
 
   // Sums all accumulated objects of this accumulator to the equivalent objects
   // of the 'other' accumulator.
@@ -170,7 +170,7 @@ private:
   void accumulate_equal_time_quantities(const std::array<linalg::Matrix<Real, linalg::GPU>, 2>& M);
   void accumulate_equal_time_quantities(const std::array<linalg::Matrix<Real, linalg::CPU>, 2>& M);
 
-  void accumulate_two_particle_quantities();
+  void accumulate_two_particle_quantities(hpx::lcos::local::barrier &b);
 
 protected:
   Parameters& parameters_;
@@ -362,12 +362,12 @@ void CtauxAccumulator<device_t, Parameters, Data, Real>::updateFrom(walker_type&
 }
 
 template <dca::linalg::DeviceType device_t, class Parameters, class Data, typename Real>
-void CtauxAccumulator<device_t, Parameters, Data, Real>::measure() {
+void CtauxAccumulator<device_t, Parameters, Data, Real>::measure(hpx::lcos::local::barrier& b) {
   number_of_measurements += 1;
   accumulated_sign += current_sign;
 
   if (perform_tp_accumulation_)
-    accumulate_two_particle_quantities();
+    accumulate_two_particle_quantities(b);
 
   accumulate_single_particle_quantities();
 
@@ -464,9 +464,9 @@ void CtauxAccumulator<device_t, Parameters, Data, Real>::accumulate_equal_time_q
  *************************************************************/
 
 template <dca::linalg::DeviceType device_t, class Parameters, class Data, typename Real>
-void CtauxAccumulator<device_t, Parameters, Data, Real>::accumulate_two_particle_quantities() {
+void CtauxAccumulator<device_t, Parameters, Data, Real>::accumulate_two_particle_quantities(hpx::lcos::local::barrier& b) {
   profiler_type profiler("tp-accumulation", "CT-AUX accumulator", __LINE__, thread_id);
-  GFLOP += 1e-9 * two_particle_accumulator_.accumulate(M_, hs_configuration_, current_sign);
+  GFLOP += 1e-9 * two_particle_accumulator_.accumulate(M_, hs_configuration_, current_sign, b);
 }
 
 template <dca::linalg::DeviceType device_t, class Parameters, class Data, typename Real>
