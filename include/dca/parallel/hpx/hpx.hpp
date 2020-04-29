@@ -17,15 +17,16 @@
 #define DCA_PARALLEL_HPX_HPX_HPP
 
 #include <hpx/hpx.hpp>
+#include <hpx/async.hpp>
+#include <hpx/mpi.hpp>
 #include <hpx/synchronization/spinlock.hpp>
 #include <hpx/synchronization/condition_variable.hpp>
 #include <hpx/lcos/future.hpp>
 #include <hpx/include/threads.hpp>
-#include <hpx/runtime/threads/thread.hpp>
-#include <hpx/runtime/threads/executors/limiting_executor.hpp>
+#include <hpx/threading/thread.hpp>
 #include <hpx/debugging/demangle_helper.hpp>
 #include <hpx/include/parallel_executors.hpp>
-#include <hpx/util/yield_while.hpp>
+#include <hpx/basic_execution/this_thread.hpp>
 
 #include <vector>
 #include <thread>
@@ -138,7 +139,7 @@ public:
 
   // We will not be using the pool for a while - put threads to sleep
   void suspend() {
-      hpx::suspend();
+
   }
 
   // Returns the number of threads used by this class.

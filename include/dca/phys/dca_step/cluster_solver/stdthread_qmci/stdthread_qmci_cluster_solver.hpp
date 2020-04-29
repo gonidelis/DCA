@@ -64,7 +64,7 @@ public:
   double finalize(dca_info_struct_t& dca_info_struct);
 
 private:
-  void startWalker(int id, hpx::lcos::local::barrier& b);
+  void startWalker(int id);
   void startAccumulator(int id);
   void startWalkerAndAccumulator(int id);
 
@@ -166,13 +166,10 @@ void StdThreadQmciClusterSolver<QmciSolver>::integrate() {
 
   dca::profiling::WallTime start_time;
 
-  hpx::lcos::local::barrier b1(2);
-  int b2;
-
   auto& pool = dca::parallel::ThreadPool::get_instance();
   for (int i = 0; i < thread_task_handler_.size(); ++i) {
     if (thread_task_handler_.getTask(i) == "walker")
-      futures.emplace_back(pool.enqueue(&ThisType::startWalker, this, i, b1));
+      futures.emplace_back(pool.enqueue(&ThisType::startWalker, this, i));
     else if (thread_task_handler_.getTask(i) == "accumulator")
       futures.emplace_back(pool.enqueue(&ThisType::startAccumulator, this, i));
     else if (thread_task_handler_.getTask(i) == "walker and accumulator")
@@ -223,7 +220,7 @@ double StdThreadQmciClusterSolver<QmciSolver>::finalize(dca_info_struct_t& dca_i
 }
 
 template <class QmciSolver>
-void StdThreadQmciClusterSolver<QmciSolver>::startWalker(int id, hpx::lcos::local::barrier &b) {
+void StdThreadQmciClusterSolver<QmciSolver>::startWalker(int id) {
   Profiler::start_threading(id);
   if (id == 0) {
     if (concurrency_.id() == concurrency_.first())
