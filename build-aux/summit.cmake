@@ -47,11 +47,5 @@ set(MAGMA_DIR $ENV{OLCF_MAGMA_ROOT} CACHE PATH
 set(FFTW_INCLUDE_DIR $ENV{OLCF_FFTW_ROOT}/include CACHE PATH "Path to fftw3.h.")
 set(FFTW_LIBRARY $ENV{OLCF_FFTW_ROOT}/lib/libfftw3.so CACHE FILEPATH "The FFTW3(-compatible) library.")
 
-# GPTL paths.
-set(GPTL_INCLUDE_DIR /gpfs/alpine/proj-shared/cph102/weile/dev/install/GPTL/include CACHE PATH "Path to gptl.h.")
-set(GPTL_LIBRARY /gpfs/alpine/proj-shared/cph102/weile/dev/install/GPTL/lib/libgptl.so CACHE FILEPATH "The GPTL(-compatible) library.")
-# Enable the threaded support.
-option(DCA_WITH_THREADED_SOLVER "Enable threaded support." ON)
-
 # HPX paths.
 set(HPX_DIR $ENV{OLCF_HPX_ROOT}/lib64/cmake/HPX CACHE PATH "Path to HPX library.")
