@@ -166,6 +166,8 @@ void StdThreadQmciClusterSolver<QmciSolver>::integrate() {
 
   dca::profiling::WallTime start_time;
 
+    hpx::mpi::experimental::enable_user_polling enable_polling;
+
   auto& pool = dca::parallel::ThreadPool::get_instance();
   for (int i = 0; i < thread_task_handler_.size(); ++i) {
     if (thread_task_handler_.getTask(i) == "walker")

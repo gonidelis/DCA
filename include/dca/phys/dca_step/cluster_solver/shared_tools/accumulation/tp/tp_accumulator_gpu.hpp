@@ -35,6 +35,9 @@
 #include "dca/phys/dca_step/cluster_solver/shared_tools/accumulation/tp/kernels_interface.hpp"
 #include "dca/phys/dca_step/cluster_solver/shared_tools/accumulation/tp/ndft/cached_ndft_gpu.hpp"
 
+#include "dca/config/threading.hpp"
+#include <hpx/mpi.hpp>
+
 #define MPI_CHECK(stmt)                                          \
 do {                                                             \
    int mpi_errno = (stmt);                                       \
@@ -533,9 +536,11 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
     MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_concurrency_id);
 
-    MPI_Request recv_request_1, recv_request_2;
-    MPI_Request send_request_1, send_request_2;
-    MPI_Status status_1, status_2, status_3, status_4;
+//    MPI_Request recv_request_1, recv_request_2;
+//    MPI_Request send_request_1, send_request_2;
+//    MPI_Status status_1, status_2, status_3, status_4;
+
+    hpx::mpi::experimental::executor exec(MPI_COMM_WORLD);
 
     // get rank index of left and right neighbor
     auto mod_op = [](int id, int mpi_size) {return id % mpi_size; };
@@ -555,19 +560,33 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
     //         measurements % ranks == 0 && local_measurement % threads == 0.
     for(int icount=0; icount < (mpi_size-1); icount++)
     {
-        MPI_CHECK(MPI_Irecv(G_[0].ptr(), (G2_sz[0].first)*(G2_sz[0].second),
-                            MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1, MPI_COMM_WORLD, &recv_request_1));
-        MPI_CHECK(MPI_Irecv(G_[1].ptr(), (G2_sz[1].first)*(G2_sz[1].second),
-                            MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1 + nr_accumulators_, MPI_COMM_WORLD, &recv_request_2));
+//        MPI_CHECK(MPI_Irecv(G_[0].ptr(), (G2_sz[0].first)*(G2_sz[0].second),
+//                            MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1, MPI_COMM_WORLD, &recv_request_1));
+//        MPI_CHECK(MPI_Irecv(G_[1].ptr(), (G2_sz[1].first)*(G2_sz[1].second),
+//                            MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1 + nr_accumulators_, MPI_COMM_WORLD, &recv_request_2));
+//
+//        MPI_CHECK(MPI_Isend(sendbuff_G_[0].ptr(), (G2_sz[0].first)*(G2_sz[0].second),
+//                            MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1, MPI_COMM_WORLD, &send_request_1));
+//        MPI_CHECK(MPI_Isend(sendbuff_G_[1].ptr(), (G2_sz[1].first)*(G2_sz[1].second),
+//                            MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1 + nr_accumulators_, MPI_COMM_WORLD, &send_request_2));
+//
+//        // wait for G2 to be available again
+//        MPI_CHECK(MPI_Wait(&recv_request_1, &status_1));
+//        MPI_CHECK(MPI_Wait(&recv_request_2, &status_2));
 
-        MPI_CHECK(MPI_Isend(sendbuff_G_[0].ptr(), (G2_sz[0].first)*(G2_sz[0].second),
-                            MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1, MPI_COMM_WORLD, &send_request_1));
-        MPI_CHECK(MPI_Isend(sendbuff_G_[1].ptr(), (G2_sz[1].first)*(G2_sz[1].second),
-                            MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1 + nr_accumulators_, MPI_COMM_WORLD, &send_request_2));
+        hpx::future<int> f_recv1 = hpx::async(exec, MPI_Irecv, G_[0].ptr(), (G2_sz[0].first)*(G2_sz[0].second),
+                                              MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1);
+        hpx::future<int> f_recv2 = hpx::async(exec, MPI_Irecv, G_[1].ptr(), (G2_sz[1].first)*(G2_sz[1].second),
+                                              MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1 + nr_accumulators_);
+
+        hpx::future<void> f_send1 = hpx::async(exec, MPI_Isend, sendbuff_G_[0].ptr(), (G2_sz[0].first)*(G2_sz[0].second),
+                                               MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1);
+        hpx::future<void> f_send2 = hpx::async(exec, MPI_Isend, sendbuff_G_[1].ptr(), (G2_sz[1].first)*(G2_sz[1].second),
+                                               MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1 + nr_accumulators_);
 
         // wait for G2 to be available again
-        MPI_CHECK(MPI_Wait(&recv_request_1, &status_1));
-        MPI_CHECK(MPI_Wait(&recv_request_2, &status_2));
+        f_recv1.get();
+        f_recv2.get();
 
         // use newly copied G2 to update G4
         for (std::size_t channel = 0; channel < G4_.size(); ++channel)
@@ -576,13 +595,16 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
         }
 
         // wait for sendbuf_G2 to be available again
-        MPI_CHECK(MPI_Wait(&send_request_1, &status_3));
-        MPI_CHECK(MPI_Wait(&send_request_2, &status_4));
+//        MPI_CHECK(MPI_Wait(&send_request_1, &status_3));
+//        MPI_CHECK(MPI_Wait(&send_request_2, &status_4));
+
+        f_send1.get();
+        f_send2.get();
 
         // get ready for send again
         for (int s = 0; s < 2; ++s)
         {
-            sendbuff_G_[s].copyFrom(G_[s]);
+            sendbuff_G_[s] = G_[s];
         }
     }
 }
