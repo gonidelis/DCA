@@ -558,24 +558,25 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
     //      a) #walker == #accumulator and shared-walk-and-accumulation-thread = true;
     //      b) and, local measurements are equal, and each accumulator should have same #measurement, i.e.
     //         measurements % ranks == 0 && local_measurement % threads == 0.
-    for(int icount=0; icount < (mpi_size-1); icount++)
-    {
-        auto f_send1 = hpx::async(exec, MPI_Isend, sendbuff_G_[0].ptr(), (G2_sz[0].first)*(G2_sz[0].second),
+    for(int icount=0; icount < (mpi_size-1); icount++) {
+        auto f_send1 = hpx::async(exec, MPI_Isend, sendbuff_G_[0].ptr(), (G2_sz[0].first) * (G2_sz[0].second),
                                   MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1);
-        auto f_send2 = hpx::async(exec, MPI_Isend, sendbuff_G_[1].ptr(), (G2_sz[1].first)*(G2_sz[1].second),
+        auto f_send2 = hpx::async(exec, MPI_Isend, sendbuff_G_[1].ptr(), (G2_sz[1].first) * (G2_sz[1].second),
                                   MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1 + nr_accumulators_);
 
-        hpx::future<int> f_recv1 = hpx::async(exec, MPI_Irecv, G_[0].ptr(), (G2_sz[0].first)*(G2_sz[0].second),
-                                              MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1);
-        hpx::future<int> f_recv2 = hpx::async(exec, MPI_Irecv, G_[1].ptr(), (G2_sz[1].first)*(G2_sz[1].second),
-                                              MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1 + nr_accumulators_);
+        auto f_recv1 = hpx::async(exec, MPI_Irecv, G_[0].ptr(), (G2_sz[0].first) * (G2_sz[0].second),
+                                  MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1);
+        auto f_recv2 = hpx::async(exec, MPI_Irecv, G_[1].ptr(), (G2_sz[1].first) * (G2_sz[1].second),
+                                  MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1 + nr_accumulators_);
 
-        auto f_rec = hpx::when_all(f_recv1, f_recv2).then([&](auto&&) {
+        auto f_recv = hpx::when_all(f_recv1, f_recv2).then([&](auto&&) {
             for (std::size_t channel = 0; channel < G4_.size(); ++channel)
             {
                 flop += updateG4(channel);
             }
+        });
 
+        auto f_step = hpx::when_all(f_recv, f_send1, f_send2).then([&](auto&&) {
             // get ready for send
             for (int s = 0; s < 2; ++s)
             {
@@ -583,9 +584,7 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
             }
         });
 
-        auto f_tmp = hpx::when_all(f_send1, f_send2);
-        f_tmp.get();
-        f_rec.get();
+        f_step.get();
     }
 }
 
