@@ -531,9 +531,11 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
         G2_sz[s] = G_[s].size();
         // copy locally generated G2 to send buff
         // TODO: make allocation once
-        sendbuff_G_[s].allocate(G_[s]);
-
-        // get ready for send and receive
+        if (!sendbuff_allocated[s])
+        {
+            sendbuff_G_[s].allocate(G_[s]);
+            sendbuff_allocated[s] = 1;
+        }
         sendbuff_G_[s] = G_[s];
     }
 
@@ -558,6 +560,11 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
     //         measurements % ranks == 0 && local_measurement % threads == 0.
     for(int icount=0; icount < (mpi_size-1); icount++)
     {
+        auto f_send1 = hpx::async(exec, MPI_Isend, sendbuff_G_[0].ptr(), (G2_sz[0].first)*(G2_sz[0].second),
+                                  MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1);
+        auto f_send2 = hpx::async(exec, MPI_Isend, sendbuff_G_[1].ptr(), (G2_sz[1].first)*(G2_sz[1].second),
+                                  MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1 + nr_accumulators_);
+
         hpx::future<int> f_recv1 = hpx::async(exec, MPI_Irecv, G_[0].ptr(), (G2_sz[0].first)*(G2_sz[0].second),
                                               MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1);
         hpx::future<int> f_recv2 = hpx::async(exec, MPI_Irecv, G_[1].ptr(), (G2_sz[1].first)*(G2_sz[1].second),
@@ -576,12 +583,6 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
             }
         });
 
-        std::vector<hpx::future<void>> f_send;
-
-        auto f_send1 = hpx::async(exec, MPI_Isend, sendbuff_G_[0].ptr(), (G2_sz[0].first)*(G2_sz[0].second),
-                                                   MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1);
-        auto f_send2 = hpx::async(exec, MPI_Isend, sendbuff_G_[1].ptr(), (G2_sz[1].first)*(G2_sz[1].second),
-                                                   MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1 + nr_accumulators_);
         auto f_tmp = hpx::when_all(f_send1, f_send2);
         f_tmp.get();
         f_rec.get();
