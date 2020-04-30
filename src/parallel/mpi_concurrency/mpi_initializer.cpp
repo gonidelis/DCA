@@ -19,11 +19,16 @@ namespace dca {
 namespace parallel {
 
 MPIInitializer::MPIInitializer(int argc, char** argv) {
-  int provided = 0;
-  constexpr int required = MPI_THREAD_FUNNELED;
-  MPI_Init_thread(&argc, &argv, required, &provided);
-  if (provided < required)
-    throw(std::logic_error("MPI does not provide adequate thread support."));
+  int is_initialized_ = -1;
+  MPI_Initialized(&is_initialized_);
+  if (!is_initialized_)
+  {
+    int provided = 0;
+    constexpr int required = MPI_THREAD_FUNNELED;
+    MPI_Init_thread(&argc, &argv, required, &provided);
+    if (provided < required)
+        throw(std::logic_error("MPI does not provide adequate thread support."));
+   }
 }
 
 MPIInitializer::~MPIInitializer() {
