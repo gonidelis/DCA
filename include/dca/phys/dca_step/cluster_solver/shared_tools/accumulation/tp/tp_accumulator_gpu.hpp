@@ -89,7 +89,7 @@ public:
   // Applies pipepline ring algorithm to move G matrices around all ranks
   void ringG(float& flop);
 
-  hpx::future<void> perform_one_communication_step(float& flop);
+  hpx::future<void> perform_one_communication_step(float& flop, hpx::mpi::experimental::executor& exec);
 
   // Sums on the host the accumulated Green's function to the accumulated Green's function of
   // other_acc.
@@ -202,6 +202,11 @@ private:
   const int nr_accumulators_;
   // send buffer for pipeline ring algorithm
   std::array<RMatrix, 2> sendbuff_G_;
+  std::array<std::pair<int, int>, 2> G2_sz_;
+  int my_concurrency_id_;
+  int mpi_size_;
+  int left_neighbor_;
+  int right_neighbor_;
 
   bool finalized_ = false;
   bool initialized_ = false;
@@ -509,28 +514,8 @@ void TpAccumulator<Parameters, linalg::GPU>::finalize() {
 
 
 template <class Parameters>
-hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communication_step(float& flop)
+hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communication_step(float& flop, hpx::mpi::experimental::executor& exec)
 {
-    std::array<std::pair<int, int>, 2> G2_sz;
-
-    // get ready for send and receive
-    for (int s = 0; s < 2; ++s)
-    {
-        G2_sz[s] = G_[s].size();
-        sendbuff_G_[s] = G_[s];
-    }
-
-    int my_concurrency_id, mpi_size;
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &my_concurrency_id);
-
-    hpx::mpi::experimental::executor exec(MPI_COMM_WORLD);
-
-    // get rank index of left and right neighbor
-    auto mod_op = [](int id, int mpi_size) {return id % mpi_size; };
-    int left_neighbor = mod_op((my_concurrency_id - 1 + mpi_size), mpi_size);
-    int right_neighbor = mod_op((my_concurrency_id + 1 + mpi_size), mpi_size);
-
     // Pipepline ring algorithm in the following for-loop:
     // 1) At each time step, local rank receives a new G2 from left hand neighbor,
     // makes a copy locally and uses this G2 to update G4, and
@@ -540,20 +525,21 @@ hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communicat
     //      b) and, local measurements are equal, and each accumulator should have same #measurement, i.e.
     //         measurements % ranks == 0 && local_measurement % threads == 0.
 
-    auto f_send1 = hpx::async(exec, MPI_Isend, sendbuff_G_[0].ptr(), (G2_sz[0].first) * (G2_sz[0].second),
-                              MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1);
-    auto f_send2 = hpx::async(exec, MPI_Isend, sendbuff_G_[1].ptr(), (G2_sz[1].first) * (G2_sz[1].second),
-                              MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1 + nr_accumulators_);
+    auto f_recv1 = hpx::async(exec, MPI_Irecv, G_[0].ptr(), (G2_sz_[0].first) * (G2_sz_[0].second),
+                              MPI_C_DOUBLE_COMPLEX, left_neighbor_, thread_id_ + 1);
+    auto f_recv2 = hpx::async(exec, MPI_Irecv, G_[1].ptr(), (G2_sz_[1].first) * (G2_sz_[1].second),
+                              MPI_C_DOUBLE_COMPLEX, left_neighbor_, thread_id_ + 1 + nr_accumulators_);
 
-    auto f_recv1 = hpx::async(exec, MPI_Irecv, G_[0].ptr(), (G2_sz[0].first) * (G2_sz[0].second),
-                              MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1);
-    auto f_recv2 = hpx::async(exec, MPI_Irecv, G_[1].ptr(), (G2_sz[1].first) * (G2_sz[1].second),
-                              MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1 + nr_accumulators_);
+    auto f_send1 = hpx::async(exec, MPI_Isend, sendbuff_G_[0].ptr(), (G2_sz_[0].first) * (G2_sz_[0].second),
+                              MPI_C_DOUBLE_COMPLEX, right_neighbor_, thread_id_ + 1);
+    auto f_send2 = hpx::async(exec, MPI_Isend, sendbuff_G_[1].ptr(), (G2_sz_[1].first) * (G2_sz_[1].second),
+                              MPI_C_DOUBLE_COMPLEX, right_neighbor_, thread_id_ + 1 + nr_accumulators_);
+
 
     auto f_rec = hpx::dataflow(
-            [&](auto&& f_rec1, auto&& f_rec2)
+            [&](auto&& f_recv1, auto&& f_recv2)
             {
-                f_rec1.get(); f_rec2.get(); // propagate exceptions
+                f_recv1.get(); f_recv2.get(); // propagate exceptions
                 for (std::size_t channel = 0; channel < G4_.size(); ++channel)
                 {
                     flop += updateG4(channel);
@@ -571,21 +557,39 @@ hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communicat
                              }
                          },
                          f_rec, f_send1, f_send2);
+//    return hpx::make_ready_future();
 }
 
 template <class Parameters>
 void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
-    int mpi_size;
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+    // get ready for send and receive
+    for (int s = 0; s < 2; ++s)
+    {
+        G2_sz_[s] = G_[s].size();
+        sendbuff_G_[s] = G_[s];
+    }
+
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size_);
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_concurrency_id_);
+
+    hpx::mpi::experimental::executor exec(MPI_COMM_WORLD);
+
+    // get rank index of left and right neighbor
+    auto mod_op = [](int id, int mpi_size) {return id % mpi_size; };
+    left_neighbor_ = mod_op((my_concurrency_id_ - 1 + mpi_size_), mpi_size_);
+    right_neighbor_ = mod_op((my_concurrency_id_ + 1 + mpi_size_), mpi_size_);
     hpx::future<void> it = hpx::make_ready_future();
 
-    for (size_t t = 0; t != mpi_size-1; ++t)
+    for (size_t t = 0; t != mpi_size_-1; ++t)
     {
         it = it.then(
-            [&flop, this](auto&& it)
+            [&, this](auto&& it)
             {
                 it.get();   // propagate exceptions
-                return perform_one_communication_step(flop);
+                return perform_one_communication_step(flop,exec);
+//                it = perform_one_communication_step(flop, exec);
+//                it.get();
             });
     }
 
