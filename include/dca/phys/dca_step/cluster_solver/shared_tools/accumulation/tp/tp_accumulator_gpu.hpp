@@ -375,7 +375,7 @@ float TpAccumulator<Parameters, linalg::GPU>::computeM(
   {
     Profiler prf("Frequency FT: HOST", "tp-accumulation", __LINE__, thread_id_);
     for (int s = 0; s < 2; ++s)
-      flop += ndft_objs_[stream_id(s)].execute(configs[s], M_pair[s], G_[s], sendbuff_G_[s]);
+      flop += ndft_objs_[stream_id(s)].execute(configs[s], M_pair[s], G_[s]);
   }
   {
     Profiler prf("Space FT: HOST", "tp-accumulation", __LINE__, thread_id_);
@@ -525,18 +525,17 @@ hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communicat
     //      b) and, local measurements are equal, and each accumulator should have same #measurement, i.e.
     //         measurements % ranks == 0 && local_measurement % threads == 0.
 
-    auto f_recv1 = hpx::async(exec, MPI_Irecv, G_[0].ptr(), (G2_sz_[0].first) * (G2_sz_[0].second),
+    auto f_recv1 = hpx::async(exec, MPI_Irecv, G_[0].ptr(), (G_[0].size().first) * (G_[0].size().second),
                               MPI_C_DOUBLE_COMPLEX, left_neighbor_, thread_id_ + 1);
-    auto f_recv2 = hpx::async(exec, MPI_Irecv, G_[1].ptr(), (G2_sz_[1].first) * (G2_sz_[1].second),
+    auto f_recv2 = hpx::async(exec, MPI_Irecv, G_[1].ptr(), (G_[1].size().first) * (G_[1].size().second),
                               MPI_C_DOUBLE_COMPLEX, left_neighbor_, thread_id_ + 1 + nr_accumulators_);
 
-    auto f_send1 = hpx::async(exec, MPI_Isend, sendbuff_G_[0].ptr(), (G2_sz_[0].first) * (G2_sz_[0].second),
+    auto f_send1 = hpx::async(exec, MPI_Isend, sendbuff_G_[0].ptr(), (sendbuff_G_[0].size().first) * (sendbuff_G_[0].size().second),
                               MPI_C_DOUBLE_COMPLEX, right_neighbor_, thread_id_ + 1);
-    auto f_send2 = hpx::async(exec, MPI_Isend, sendbuff_G_[1].ptr(), (G2_sz_[1].first) * (G2_sz_[1].second),
+    auto f_send2 = hpx::async(exec, MPI_Isend, sendbuff_G_[1].ptr(), (sendbuff_G_[1].size().first) * (sendbuff_G_[1].size().second),
                               MPI_C_DOUBLE_COMPLEX, right_neighbor_, thread_id_ + 1 + nr_accumulators_);
 
-
-    auto f_rec = hpx::dataflow(
+    auto f_rec = hpx::dataflow(hpx::launch::sync,
             [&](auto&& f_recv1, auto&& f_recv2)
             {
                 f_recv1.get(); f_recv2.get(); // propagate exceptions
@@ -550,10 +549,11 @@ hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communicat
     return hpx::dataflow(hpx::launch::sync,
                          [&](auto&& f_rec, auto&& f_send1, auto&& f_send2)
                          {
-                             f_rec.get(); f_send1.get(), f_send2.get();  // propagate exceptions
+                             f_rec.get();
+                f_send1.get(), f_send2.get();  // propagate exceptions
                              for (int s = 0; s < 2; ++s)
                              {
-                                 sendbuff_G_[s] = G_[s];
+                                 sendbuff_G_[s].swap(G_[s]);
                              }
                          },
                          f_rec, f_send1, f_send2);
@@ -562,7 +562,6 @@ hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communicat
 
 template <class Parameters>
 void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
-
     // get ready for send and receive
     for (int s = 0; s < 2; ++s)
     {
@@ -583,17 +582,17 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
 
     for (size_t t = 0; t != mpi_size_-1; ++t)
     {
-        it = it.then(
-            [&, this](auto&& it)
-            {
-                it.get();   // propagate exceptions
-                return perform_one_communication_step(flop,exec);
-//                it = perform_one_communication_step(flop, exec);
-//                it.get();
-            });
+//        it = it.then(
+//            [&, this](auto&& it)
+//            {
+//                it.get();   // propagate exceptions
+//                return perform_one_communication_step(flop,exec);
+                it = perform_one_communication_step(flop, exec);
+                it.get();
+//            });
     }
 
-    it.get();  // wait for everything to finish
+//    it.get();  // wait for everything to finish
 }
 
 template <class Parameters>
