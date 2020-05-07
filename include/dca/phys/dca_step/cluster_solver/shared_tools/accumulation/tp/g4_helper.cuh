@@ -55,8 +55,9 @@ public:
   // Single band version of the above method.
   __device__ inline unsigned int g4Index(int k1, int k2, int k_ex, int w1, int w2, int w_ex) const;
 
-  // Returns range (start and end index) of G4 in which local rank should compute, when GPUDirect is enabled
-  __device__ inline void getComputeRange(int my_rank, int mpi_size, int total_G4_size, int& start, int& end) const;
+  // Returns range (start and end index) of G4 in which local rank should compute, when distributed g4 is enabled
+  __device__ inline void getComputeRange(const int& my_rank, const int& mpi_size,
+                                         const uint64_t& total_G4_size, uint64_t & start, uint64_t& end) const;
 
 protected:
   int lda_;
@@ -126,14 +127,15 @@ inline __device__ unsigned int G4Helper::g4Index(int k1, int k2, int k_ex, int w
 }
 
 inline __device__
-void G4Helper::getComputeRange(int my_rank, int mpi_size, int total_G4_size, int& start, int& end) const {
+void G4Helper::getComputeRange(const int& my_rank, const int& mpi_size,
+                               const uint64_t& total_G4_size, uint64_t & start, uint64_t& end) const {
 
-    unsigned int offset = 0;
+    uint64_t offset = 0;
     // check if originally flattened one-dimensional G4 array can be equally (up to 0) distributed across ranks
     // if balanced, each rank has same amount of elements to compute
     // if not, ranks with (rank_id < nb_more_work_ranks) has to compute 1 more element than other ranks
     bool balanced = (total_G4_size % mpi_size == 0);
-    int local_work = total_G4_size / mpi_size;
+    uint64_t local_work = total_G4_size / mpi_size;
 
     if(balanced) {
         offset = my_rank  * local_work;
