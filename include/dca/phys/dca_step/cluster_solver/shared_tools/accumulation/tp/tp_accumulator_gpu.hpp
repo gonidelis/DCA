@@ -89,7 +89,7 @@ public:
   // Applies pipepline ring algorithm to move G matrices around all ranks
   void ringG(float& flop);
 
-  hpx::future<void> perform_one_communication_step(float& flop, hpx::mpi::experimental::executor& exec);
+  hpx::future<void> perform_one_communication_step(float& flop, hpx::mpi::experimental::executor& exec, int left_neighbor, int right_neighbor);
 
   // Sums on the host the accumulated Green's function to the accumulated Green's function of
   // other_acc.
@@ -205,10 +205,6 @@ private:
   // send buffer for pipeline ring algorithm
   std::array<RMatrix, 2> sendbuff_G_;
   std::array<std::pair<int, int>, 2> G2_sz_;
-  int my_concurrency_id_;
-  int mpi_size_;
-  int left_neighbor_;
-  int right_neighbor_;
 
   bool finalized_ = false;
   bool initialized_ = false;
@@ -523,7 +519,8 @@ void TpAccumulator<Parameters, linalg::GPU>::finalize() {
 
 
 template <class Parameters>
-hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communication_step(float& flop, hpx::mpi::experimental::executor& exec)
+hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communication_step(float& flop, hpx::mpi::experimental::executor& exec,
+                                                                                         int left_neighbor, int right_neighbor)
 {
     // Pipepline ring algorithm in the following for-loop:
     // 1) At each time step, local rank receives a new G2 from left hand neighbor,
@@ -535,38 +532,47 @@ hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communicat
     //         measurements % ranks == 0 && local_measurement % threads == 0.
 
     auto f_recv1 = hpx::async(exec, MPI_Irecv, G_[0].ptr(), (G_[0].size().first) * (G_[0].size().second),
-                              MPI_C_DOUBLE_COMPLEX, left_neighbor_, thread_id_ + 1);
+                              MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1);
     auto f_recv2 = hpx::async(exec, MPI_Irecv, G_[1].ptr(), (G_[1].size().first) * (G_[1].size().second),
-                              MPI_C_DOUBLE_COMPLEX, left_neighbor_, thread_id_ + 1 + nr_accumulators_);
+                              MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1 + nr_accumulators_);
 
     auto f_send1 = hpx::async(exec, MPI_Isend, sendbuff_G_[0].ptr(), (sendbuff_G_[0].size().first) * (sendbuff_G_[0].size().second),
-                              MPI_C_DOUBLE_COMPLEX, right_neighbor_, thread_id_ + 1);
+                              MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1);
     auto f_send2 = hpx::async(exec, MPI_Isend, sendbuff_G_[1].ptr(), (sendbuff_G_[1].size().first) * (sendbuff_G_[1].size().second),
-                              MPI_C_DOUBLE_COMPLEX, right_neighbor_, thread_id_ + 1 + nr_accumulators_);
+                              MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1 + nr_accumulators_);
 
-    auto f_rec = hpx::dataflow(hpx::launch::sync,
-            [&](auto&& f_recv1, auto&& f_recv2)
-            {
+//    auto f_rec = hpx::dataflow(hpx::launch::async,
+//            [&](auto&& f_recv1, auto&& f_recv2)
+//            {
                 f_recv1.get(); f_recv2.get(); // propagate exceptions
                 for (std::size_t channel = 0; channel < G4_.size(); ++channel)
                 {
                     flop += updateG4(channel);
                 }
-            },
-            f_recv1, f_recv2);
-
-    return hpx::dataflow(hpx::launch::sync,
-                         [&](auto&& f_rec, auto&& f_send1, auto&& f_send2)
-                         {
-                             f_rec.get();
+//            },
+//            f_recv1, f_recv2);
+//    hpx::future<void> f1 = hpx::make_ready_future();
+//    hpx::future<void> f2 = hpx::make_ready_future();
+//    auto f3 = hpx::dataflow(hpx::launch::async,
+//                         [&](auto&& f1, auto&& f2)
+//                         {
+//                            f1.get(); f2.get();
+//                         }, f1, f2);
+//
+//     f3.get();
+//    return hpx::dataflow(hpx::launch::async,
+//                         [&](auto&& f_rec, auto&& f_send1, auto&& f_send2)
+//                         {
+//                             f_rec.get();
                 f_send1.get(), f_send2.get();  // propagate exceptions
                              for (int s = 0; s < 2; ++s)
                              {
                                  sendbuff_G_[s].swap(G_[s]);
                              }
-                         },
-                         f_rec, f_send1, f_send2);
-//    return hpx::make_ready_future();
+//                         },
+//                         f_rec, f_send1, f_send2);
+//                         f_send1, f_send2);
+    return hpx::make_ready_future();
 }
 
 template <class Parameters>
@@ -578,8 +584,9 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
         sendbuff_G_[s] = G_[s];
     }
 
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size_);
-    MPI_Comm_rank(MPI_COMM_WORLD, &my_concurrency_id_);
+    int mpi_size, my_concurrency_id;
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_concurrency_id);
 
     hpx::mpi::experimental::executor exec(MPI_COMM_WORLD);
 
@@ -587,14 +594,16 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
     int left_neighbor  = (my_concurrency_id - 1 + mpi_size) % mpi_size;
     int right_neighbor = (my_concurrency_id + 1 + mpi_size) %  mpi_size;
 
-    for (size_t t = 0; t != mpi_size_-1; ++t)
+    hpx::future<void> it = hpx::make_ready_future();
+
+    for (size_t t = 0; t != mpi_size-1; ++t)
     {
 //        it = it.then(
 //            [&, this](auto&& it)
 //            {
 //                it.get();   // propagate exceptions
-//                return perform_one_communication_step(flop,exec);
-                it = perform_one_communication_step(flop, exec);
+//                return perform_one_communication_step(flop, exec, left_neighbor, right_neighbor);
+                it = perform_one_communication_step(flop, exec, left_neighbor, right_neighbor);
                 it.get();
 //            });
     }
