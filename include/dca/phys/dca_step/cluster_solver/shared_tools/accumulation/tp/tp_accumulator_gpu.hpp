@@ -183,6 +183,8 @@ private:
   using MatrixDev = linalg::Matrix<Complex, linalg::GPU>;
   using RMatrix =
       linalg::ReshapableMatrix<Complex, linalg::GPU, config::McOptions::TpAllocator<Complex>>;
+  using RMatrixValueType = typename RMatrix::ValueType;
+
   using MatrixHost = linalg::Matrix<Complex, linalg::CPU>;
 
   std::array<linalg::util::MagmaQueue, 2> queues_;
@@ -507,8 +509,8 @@ void TpAccumulator<Parameters, linalg::GPU>::finalize() {
     if(distributed_g4_enabled_)
     {
       // modify G4 size in G4 cpu, otherwise, copyTo() operation failed due to incomparable size
-      // reset_size() only modifies member Nb_elements in function, does not change tp_dmn.get_size()
-      G4_[channel].reset_size(get_G4()[channel].size());
+      // resize() only modifies member Nb_elements in function, does not change tp_dmn.get_size()
+      G4_[channel].resize(get_G4()[channel].size());
     }
     get_G4()[channel].copyTo(G4_[channel]);
   }
@@ -582,10 +584,8 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
     hpx::mpi::experimental::executor exec(MPI_COMM_WORLD);
 
     // get rank index of left and right neighbor
-    auto mod_op = [](int id, int mpi_size) {return id % mpi_size; };
-    left_neighbor_ = mod_op((my_concurrency_id_ - 1 + mpi_size_), mpi_size_);
-    right_neighbor_ = mod_op((my_concurrency_id_ + 1 + mpi_size_), mpi_size_);
-    hpx::future<void> it = hpx::make_ready_future();
+    int left_neighbor  = (my_concurrency_id - 1 + mpi_size) % mpi_size;
+    int right_neighbor = (my_concurrency_id + 1 + mpi_size) %  mpi_size;
 
     for (size_t t = 0; t != mpi_size_-1; ++t)
     {
