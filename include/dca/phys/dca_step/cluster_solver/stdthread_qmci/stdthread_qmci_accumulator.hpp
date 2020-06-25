@@ -113,7 +113,7 @@ void StdThreadQmciAccumulator<QmciAccumulator>::measure() {
     return;
   assert(measuring_);
 
-  QmciAccumulator::measure();
+  QmciAccumulator::measure(-1);
   measuring_ = false;
 }
 

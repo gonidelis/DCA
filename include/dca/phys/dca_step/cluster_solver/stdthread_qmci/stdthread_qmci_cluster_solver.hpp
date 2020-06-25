@@ -338,7 +338,9 @@ void StdThreadQmciClusterSolver<QmciSolver>::iterateOverLocalMeasurements(
   if (fix_thread_meas) {
     // Perform a fixed amount of loops with a private counter.
     for (int meas_id = 0; meas_id < n_local_meas; ++meas_id)
-      f(meas_id, n_local_meas, print);
+    {
+        f(meas_id, n_local_meas, print);
+    }
   }
   else {
     // Perform the total number of loop with a shared atomic counter.
@@ -421,7 +423,7 @@ void StdThreadQmciClusterSolver<QmciSolver>::startWalkerAndAccumulator(int id) {
       {
         Profiler profiler("Accumulator measuring", "stdthread-MC", __LINE__, id);
         accumulator_obj.updateFrom(walker);
-        accumulator_obj.measure();
+        accumulator_obj.measure(meas_id);
       }
       if (print)
         walker.updateShell(meas_id, n_meas);
