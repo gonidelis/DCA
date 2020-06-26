@@ -37,6 +37,7 @@
 
 #include "dca/config/threading.hpp"
 #include <hpx/mpi.hpp>
+#include "dca/parallel/mpi_concurrency/mpi_type_map.hpp"
 
 namespace dca {
 namespace phys {
@@ -76,20 +77,21 @@ public:
   // Returns: number of flop.
   template <class Configuration, typename RealIn>
   float accumulate(const std::array<linalg::Matrix<RealIn, linalg::GPU>, 2>& M,
-                   const std::array<Configuration, 2>& configs, int sign);
+                   const std::array<Configuration, 2>& configs, int sign, const int meas_id);
 
   // CPU input. For testing purposes.
   template <class Configuration>
   float accumulate(const std::array<linalg::Matrix<double, linalg::CPU>, 2>& M,
-                   const std::array<Configuration, 2>& configs, int sign);
+                   const std::array<Configuration, 2>& configs, int sign, const int meas_id);
 
   // Downloads the accumulation result to the host.
   void finalize();
 
   // Applies pipepline ring algorithm to move G matrices around all ranks
-  void ringG(float& flop);
+  void ringG(float& flop, const int meas_id);
 
-  hpx::future<void> perform_one_communication_step(float& flop, hpx::mpi::experimental::executor& exec, int left_neighbor, int right_neighbor);
+  hpx::future<void> perform_one_communication_step(float& flop, hpx::mpi::experimental::executor& exec,
+                                                const int left_neighbor, const int right_neighbor, const int mpi_size);
 
   // Sums on the host the accumulated Green's function to the accumulated Green's function of
   // other_acc.
@@ -161,6 +163,8 @@ private:
                  const std::array<Configuration, 2>& configs);
 
   float updateG4(const std::size_t channel_index);
+  // prev_updateG4 simply copies updateG4 function but takes prev_G_ instead of G_. In future, needs code refactoring
+  float prev_updateG4(const std::size_t channel_index);
 
   void synchronizeStreams();
 
@@ -202,9 +206,11 @@ private:
 
   bool distributed_g4_enabled_ = false;
   const int nr_accumulators_;
+
   // send buffer for pipeline ring algorithm
+  std::array<RMatrix, 2> prev_G_;
+  std::array<RMatrix, 2> prev_sendbuff_G_;
   std::array<RMatrix, 2> sendbuff_G_;
-  std::array<std::pair<int, int>, 2> G2_sz_;
 
   bool finalized_ = false;
   bool initialized_ = false;
@@ -324,7 +330,7 @@ template <class Parameters>
 template <class Configuration, typename RealIn>
 float TpAccumulator<Parameters, linalg::GPU>::accumulate(
     const std::array<linalg::Matrix<RealIn, linalg::GPU>, 2>& M,
-    const std::array<Configuration, 2>& configs, const int sign) {
+    const std::array<Configuration, 2>& configs, const int sign, const int meas_id) {
   Profiler profiler("accumulate", "tp-accumulation", __LINE__, thread_id_);
   float flop = 0;
 
@@ -344,7 +350,7 @@ float TpAccumulator<Parameters, linalg::GPU>::accumulate(
   }
 
   if(distributed_g4_enabled_)
-    ringG(flop);
+    ringG(flop, meas_id);
 
   return flop;
 }
@@ -353,12 +359,12 @@ template <class Parameters>
 template <class Configuration>
 float TpAccumulator<Parameters, linalg::GPU>::accumulate(
     const std::array<linalg::Matrix<double, linalg::CPU>, 2>& M,
-    const std::array<Configuration, 2>& configs, const int sign) {
+    const std::array<Configuration, 2>& configs, const int sign, const int meas_id) {
   std::array<linalg::Matrix<double, linalg::GPU>, 2> M_dev;
   for (int s = 0; s < 2; ++s)
     M_dev[s].setAsync(M[s], streams_[0]);
 
-  return accumulate(M_dev, configs, sign);
+  return accumulate(M_dev, configs, sign, meas_id);
 }
 
 template <class Parameters>
@@ -496,6 +502,82 @@ float TpAccumulator<Parameters, linalg::GPU>::updateG4(const std::size_t channel
 }
 
 template <class Parameters>
+float TpAccumulator<Parameters, linalg::GPU>::prev_updateG4(const std::size_t channel_index) {
+    // G4 is stored with the following band convention:
+    // b1 ------------------------ b3
+    //        |           |
+    //        |           |
+    //        |           |
+    // b2 ------------------------ b4
+
+    const int nw_exchange = domains::FrequencyExchangeDomain::get_size();
+    const int nk_exchange = domains::MomentumExchangeDomain::get_size();
+
+    //  TODO: set stream only if this thread gets exclusive access to G4.
+    //  get_G4().setStream(streams_[0]);
+
+
+    const FourPointType channel = channels_[channel_index];
+
+    int my_rank, mpi_size;
+    uint64_t total_G4_size;
+    if(distributed_g4_enabled_)
+    {
+        MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+        MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+        typename BaseClass::TpDomain tp_dmn;
+        total_G4_size = tp_dmn.get_size();
+    }
+
+    switch (channel) {
+        case PARTICLE_HOLE_TRANSVERSE:
+            return details::updateG4<Real, PARTICLE_HOLE_TRANSVERSE>(
+                    get_G4()[channel_index].ptr(), prev_G_[0].ptr(), prev_G_[0].leadingDimension(), prev_G_[1].ptr(),
+                    prev_G_[1].leadingDimension(), n_bands_, KDmn::dmn_size(), WTpPosDmn::dmn_size(), nw_exchange,
+                    nk_exchange, sign_, multiple_accumulators_, streams_[0],
+                    my_rank, mpi_size, total_G4_size, distributed_g4_enabled_);
+
+        case PARTICLE_HOLE_MAGNETIC:
+            return details::updateG4<Real, PARTICLE_HOLE_MAGNETIC>(
+                    get_G4()[channel_index].ptr(), prev_G_[0].ptr(), prev_G_[0].leadingDimension(), prev_G_[1].ptr(),
+                    prev_G_[1].leadingDimension(), n_bands_, KDmn::dmn_size(), WTpPosDmn::dmn_size(), nw_exchange,
+                    nk_exchange, sign_, multiple_accumulators_, streams_[0],
+                    my_rank, mpi_size, total_G4_size, distributed_g4_enabled_);
+
+        case PARTICLE_HOLE_CHARGE:
+            return details::updateG4<Real, PARTICLE_HOLE_CHARGE>(
+                    get_G4()[channel_index].ptr(), prev_G_[0].ptr(), prev_G_[0].leadingDimension(), prev_G_[1].ptr(),
+                    prev_G_[1].leadingDimension(), n_bands_, KDmn::dmn_size(), WTpPosDmn::dmn_size(), nw_exchange,
+                    nk_exchange, sign_, multiple_accumulators_, streams_[0],
+                    my_rank, mpi_size, total_G4_size, distributed_g4_enabled_);
+
+        case PARTICLE_HOLE_LONGITUDINAL_UP_UP:
+            return details::updateG4<Real, PARTICLE_HOLE_LONGITUDINAL_UP_UP>(
+                    get_G4()[channel_index].ptr(), prev_G_[0].ptr(), prev_G_[0].leadingDimension(), prev_G_[1].ptr(),
+                    prev_G_[1].leadingDimension(), n_bands_, KDmn::dmn_size(), WTpPosDmn::dmn_size(), nw_exchange,
+                    nk_exchange, sign_, multiple_accumulators_, streams_[0],
+                    my_rank, mpi_size, total_G4_size, distributed_g4_enabled_);
+
+        case PARTICLE_HOLE_LONGITUDINAL_UP_DOWN:
+            return details::updateG4<Real, PARTICLE_HOLE_LONGITUDINAL_UP_DOWN>(
+                    get_G4()[channel_index].ptr(), prev_G_[0].ptr(), prev_G_[0].leadingDimension(), prev_G_[1].ptr(),
+                    prev_G_[1].leadingDimension(), n_bands_, KDmn::dmn_size(), WTpPosDmn::dmn_size(), nw_exchange,
+                    nk_exchange, sign_, multiple_accumulators_, streams_[0],
+                    my_rank, mpi_size, total_G4_size, distributed_g4_enabled_);
+
+        case PARTICLE_PARTICLE_UP_DOWN:
+            return details::updateG4<Real, PARTICLE_PARTICLE_UP_DOWN>(
+                    get_G4()[channel_index].ptr(), prev_G_[0].ptr(), prev_G_[0].leadingDimension(), prev_G_[1].ptr(),
+                    prev_G_[1].leadingDimension(), n_bands_, KDmn::dmn_size(), WTpPosDmn::dmn_size(), nw_exchange,
+                    nk_exchange, sign_, multiple_accumulators_, streams_[0],
+                    my_rank, mpi_size, total_G4_size, distributed_g4_enabled_);
+
+        default:
+            throw std::logic_error("Specified four point type not implemented.");
+    }
+}
+
+template <class Parameters>
 void TpAccumulator<Parameters, linalg::GPU>::finalize() {
   if (finalized_)
     return;
@@ -520,7 +602,7 @@ void TpAccumulator<Parameters, linalg::GPU>::finalize() {
 
 template <class Parameters>
 hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communication_step(float& flop, hpx::mpi::experimental::executor& exec,
-                                                                                         int left_neighbor, int right_neighbor)
+                                                                                         const int left_neighbor, const int right_neighbor, const int mpi_size)
 {
     // Pipepline ring algorithm in the following for-loop:
     // 1) At each time step, local rank receives a new G2 from left hand neighbor,
@@ -531,17 +613,43 @@ hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communicat
     //      b) and, local measurements are equal, and each accumulator should have same #measurement, i.e.
     //         measurements % ranks == 0 && local_measurement % threads == 0.
 
+    // G2 from previous measurement step goes to counter-clockwise ring (i.e. receives from right, sends to left)
+    auto prev_f_recv1 = hpx::async(exec, MPI_Irecv, prev_G_[0].ptr(), (prev_G_[0].size().first)*(prev_G_[0].size().second),
+              dca::parallel::MPITypeMap<RMatrixValueType>::value(), right_neighbor, thread_id_ + 1 + 100);
+    auto prev_f_recv2 = hpx::async(exec, MPI_Irecv, prev_G_[1].ptr(), (prev_G_[1].size().first)*(prev_G_[1].size().second),
+              dca::parallel::MPITypeMap<RMatrixValueType>::value(), right_neighbor, thread_id_ + 1 + nr_accumulators_ + 100);
+
+    // G2 from current measurement step goes to counter-clockwise ring (i.e. receives from left, sends to right)
     auto f_recv1 = hpx::async(exec, MPI_Irecv, G_[0].ptr(), (G_[0].size().first) * (G_[0].size().second),
-                              MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1);
+                              dca::parallel::MPITypeMap<RMatrixValueType>::value(), left_neighbor, thread_id_ + 1);
     auto f_recv2 = hpx::async(exec, MPI_Irecv, G_[1].ptr(), (G_[1].size().first) * (G_[1].size().second),
-                              MPI_C_DOUBLE_COMPLEX, left_neighbor, thread_id_ + 1 + nr_accumulators_);
+                              dca::parallel::MPITypeMap<RMatrixValueType>::value(), left_neighbor, thread_id_ + 1 + nr_accumulators_);
+
+    // G2 from previous measurement step goes to counter-clockwise ring (i.e. receives from right, sends to left)
+    auto prev_f_send1 = hpx::async(exec, MPI_Isend, prev_sendbuff_G_[0].ptr(), (prev_sendbuff_G_[0].size().first)*(prev_sendbuff_G_[0].size().second),
+              dca::parallel::MPITypeMap<RMatrixValueType>::value(), left_neighbor, thread_id_ + 1 + 100);
+    auto prev_f_send2 = hpx::async(exec, MPI_Isend, prev_sendbuff_G_[1].ptr(), (prev_sendbuff_G_[1].size().first)*(prev_sendbuff_G_[1].size().second),
+              dca::parallel::MPITypeMap<RMatrixValueType>::value(), left_neighbor, thread_id_ + 1 + nr_accumulators_ + 100);
 
     auto f_send1 = hpx::async(exec, MPI_Isend, sendbuff_G_[0].ptr(), (sendbuff_G_[0].size().first) * (sendbuff_G_[0].size().second),
-                              MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1);
+                              dca::parallel::MPITypeMap<RMatrixValueType>::value(), right_neighbor, thread_id_ + 1);
     auto f_send2 = hpx::async(exec, MPI_Isend, sendbuff_G_[1].ptr(), (sendbuff_G_[1].size().first) * (sendbuff_G_[1].size().second),
-                              MPI_C_DOUBLE_COMPLEX, right_neighbor, thread_id_ + 1 + nr_accumulators_);
+                              dca::parallel::MPITypeMap<RMatrixValueType>::value(), right_neighbor, thread_id_ + 1 + nr_accumulators_);
 
-//    auto f_rec = hpx::dataflow(hpx::launch::async,
+    auto prev_f_recv = hpx::dataflow(hpx::launch::sync,
+            [&](auto&& prev_f_recv1, auto&& prev_f_recv2)
+            {
+                prev_f_recv1.get(); prev_f_recv2.get(); // propagate exceptions
+                for (std::size_t channel = 0; channel < G4_.size(); ++channel)
+                {
+                    flop += prev_updateG4(channel);
+                }
+            },
+            prev_f_recv1, prev_f_recv2);
+
+    prev_f_recv.get();
+
+//    auto f_rec = hpx::dataflow(hpx::launch::sync,
 //            [&](auto&& f_recv1, auto&& f_recv2)
 //            {
                 f_recv1.get(); f_recv2.get(); // propagate exceptions
@@ -551,15 +659,14 @@ hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communicat
                 }
 //            },
 //            f_recv1, f_recv2);
-//    hpx::future<void> f1 = hpx::make_ready_future();
-//    hpx::future<void> f2 = hpx::make_ready_future();
-//    auto f3 = hpx::dataflow(hpx::launch::async,
-//                         [&](auto&& f1, auto&& f2)
-//                         {
-//                            f1.get(); f2.get();
-//                         }, f1, f2);
-//
-//     f3.get();
+
+     prev_f_send1.get(); prev_f_send2.get();
+
+     for (int s = 0; s < 2; ++s)
+     {
+         prev_sendbuff_G_[s].swap(prev_G_[s]);
+     }
+
 //    return hpx::dataflow(hpx::launch::async,
 //                         [&](auto&& f_rec, auto&& f_send1, auto&& f_send2)
 //                         {
@@ -576,39 +683,47 @@ hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communicat
 }
 
 template <class Parameters>
-void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop) {
-    // get ready for send and receive
-    for (int s = 0; s < 2; ++s)
-    {
-        G2_sz_[s] = G_[s].size();
-        sendbuff_G_[s] = G_[s];
-    }
+void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop, const int meas_id) {
 
-    int mpi_size, my_concurrency_id;
-    MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &my_concurrency_id);
+    const bool perform_bidirectional_ring = meas_id % 2 == 0 ? false : true;
 
-    hpx::mpi::experimental::executor exec(MPI_COMM_WORLD);
+    if (!perform_bidirectional_ring) {
+        // store G2 in even measurement step (i.e. meas_id = 0, 2, 4...) as a previous G2
+        for (int s = 0; s < 2; ++s)
+        {
+            prev_G_[s] = G_[s];
+            prev_sendbuff_G_[s] = G_[s];
+        }
+    } else {
+        // perform bidirectional communication in odd measurement step (i.e. meas_id = 1, 3, 5...)
+        int my_concurrency_id, mpi_size;
+        MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+        MPI_Comm_rank(MPI_COMM_WORLD, &my_concurrency_id);
+        // get rank index of left and right neighbor
+        const int left_neighbor  = (my_concurrency_id - 1 + mpi_size) % mpi_size;
+        const int right_neighbor = (my_concurrency_id + 1 + mpi_size) %  mpi_size;
 
-    // get rank index of left and right neighbor
-    int left_neighbor  = (my_concurrency_id - 1 + mpi_size) % mpi_size;
-    int right_neighbor = (my_concurrency_id + 1 + mpi_size) %  mpi_size;
+        // get ready for send and receive
+        for (int s = 0; s < 2; ++s)
+        {
+            sendbuff_G_[s] = G_[s];
+        }
 
-    hpx::future<void> it = hpx::make_ready_future();
+        hpx::mpi::experimental::executor exec(MPI_COMM_WORLD);
+        hpx::future<void> it = hpx::make_ready_future();
 
-    for (size_t t = 0; t != mpi_size-1; ++t)
-    {
+        for (size_t t = 0; t != mpi_size-1; ++t)
+        {
 //        it = it.then(
 //            [&, this](auto&& it)
 //            {
 //                it.get();   // propagate exceptions
 //                return perform_one_communication_step(flop, exec, left_neighbor, right_neighbor);
-                it = perform_one_communication_step(flop, exec, left_neighbor, right_neighbor);
+                it = perform_one_communication_step(flop, exec, left_neighbor, right_neighbor, mpi_size);
                 it.get();
 //            });
+        }
     }
-
-//    it.get();  // wait for everything to finish
 }
 
 template <class Parameters>
