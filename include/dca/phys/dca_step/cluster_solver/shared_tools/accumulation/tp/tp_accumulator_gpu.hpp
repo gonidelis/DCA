@@ -636,7 +636,7 @@ hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communicat
     auto f_send2 = hpx::async(exec, MPI_Isend, sendbuff_G_[1].ptr(), (sendbuff_G_[1].size().first) * (sendbuff_G_[1].size().second),
                               dca::parallel::MPITypeMap<RMatrixValueType>::value(), right_neighbor, thread_id_ + 1 + nr_accumulators_);
 
-    auto prev_f_recv = hpx::dataflow(hpx::launch::sync,
+    auto prev_f_recv = hpx::dataflow(hpx::launch::async,
             [&](auto&& prev_f_recv1, auto&& prev_f_recv2)
             {
                 prev_f_recv1.get(); prev_f_recv2.get(); // propagate exceptions
@@ -647,39 +647,51 @@ hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communicat
             },
             prev_f_recv1, prev_f_recv2);
 
-    prev_f_recv.get();
-
-//    auto f_rec = hpx::dataflow(hpx::launch::sync,
-//            [&](auto&& f_recv1, auto&& f_recv2)
-//            {
+    auto f_rec = hpx::dataflow(hpx::launch::async,
+            [&](auto&& f_recv1, auto&& f_recv2)
+            {
                 f_recv1.get(); f_recv2.get(); // propagate exceptions
                 for (std::size_t channel = 0; channel < G4_.size(); ++channel)
                 {
                     flop += updateG4(channel);
                 }
-//            },
-//            f_recv1, f_recv2);
+            },
+            f_recv1, f_recv2);
 
-     prev_f_send1.get(); prev_f_send2.get();
+    auto f_prev = hpx::dataflow(hpx::launch::async,
+                               [&](auto&& prev_f_recv, auto&& prev_f_send1, auto&& prev_f_send2)
+                               {
+                                   prev_f_recv.get();
+                                   prev_f_send1.get(), prev_f_send2.get();  // propagate exceptions
+                                   for (int s = 0; s < 2; ++s)
+                                   {
+                                       prev_sendbuff_G_[s].swap(prev_G_[s]);
+                                   }
+                               },
+                                prev_f_recv, prev_f_send1, prev_f_send2);
 
-     for (int s = 0; s < 2; ++s)
-     {
-         prev_sendbuff_G_[s].swap(prev_G_[s]);
-     }
 
-//    return hpx::dataflow(hpx::launch::async,
-//                         [&](auto&& f_rec, auto&& f_send1, auto&& f_send2)
-//                         {
-//                             f_rec.get();
-                f_send1.get(), f_send2.get();  // propagate exceptions
+    auto f_cur = hpx::dataflow(hpx::launch::async,
+                         [&](auto&& f_rec, auto&& f_send1, auto&& f_send2)
+                         {
+                            f_rec.get();
+                            f_send1.get(), f_send2.get();  // propagate exceptions
                              for (int s = 0; s < 2; ++s)
                              {
                                  sendbuff_G_[s].swap(G_[s]);
                              }
-//                         },
-//                         f_rec, f_send1, f_send2);
-//                         f_send1, f_send2);
-    return hpx::make_ready_future();
+                         },
+                         f_rec, f_send1, f_send2);
+
+    return hpx::dataflow(hpx::launch::async,
+            [&](auto&& f_prev, auto&& f_cur)
+            {
+                f_prev.get();
+                f_cur.get();
+            },
+            f_prev, f_cur);
+
+//    return hpx::make_ready_future();
 }
 
 template <class Parameters>
