@@ -659,16 +659,16 @@ hpx::future<void> TpAccumulator<Parameters, linalg::GPU>::perform_one_communicat
             f_recv1, f_recv2);
 
     auto f_prev = hpx::dataflow(hpx::launch::async,
-                               [&](auto&& prev_f_recv, auto&& prev_f_send1, auto&& prev_f_send2)
-                               {
-                                   prev_f_recv.get();
-                                   prev_f_send1.get(), prev_f_send2.get();  // propagate exceptions
-                                   for (int s = 0; s < 2; ++s)
-                                   {
-                                       prev_sendbuff_G_[s].swap(prev_G_[s]);
-                                   }
-                               },
-                                prev_f_recv, prev_f_send1, prev_f_send2);
+           [&](auto&& prev_f_recv, auto&& prev_f_send1, auto&& prev_f_send2)
+           {
+               prev_f_recv.get();
+               prev_f_send1.get(), prev_f_send2.get();  // propagate exceptions
+               for (int s = 0; s < 2; ++s)
+               {
+                   prev_sendbuff_G_[s].swap(prev_G_[s]);
+               }
+           },
+            prev_f_recv, prev_f_send1, prev_f_send2);
 
 
     auto f_cur = hpx::dataflow(hpx::launch::async,
@@ -726,15 +726,16 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop, const int meas_i
 
         for (size_t t = 0; t != mpi_size-1; ++t)
         {
-//        it = it.then(
-//            [&, this](auto&& it)
-//            {
-//                it.get();   // propagate exceptions
-//                return perform_one_communication_step(flop, exec, left_neighbor, right_neighbor);
-                it = perform_one_communication_step(flop, exec, left_neighbor, right_neighbor, mpi_size);
-                it.get();
-//            });
+        it = it.then(
+            [&, this](auto&& it)
+            {
+                it.get();   // propagate exceptions
+                return perform_one_communication_step(flop, exec, left_neighbor, right_neighbor, mpi_size);
+//                it = perform_one_communication_step(flop, exec, left_neighbor, right_neighbor, mpi_size);
+//                it.get();
+            });
         }
+        it.get();
     }
 }
 
