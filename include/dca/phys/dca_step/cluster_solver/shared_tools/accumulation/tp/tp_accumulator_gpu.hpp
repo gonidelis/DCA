@@ -598,17 +598,10 @@ void TpAccumulator<Parameters, linalg::GPU>::finalize() {
 
 template <class Parameters>
 void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop, const int meas_id) {
+    auto is_odd = [](int const i) -> bool {  return( (i % 2) == 1); };
+    bool const perform_bidirectional_ring = is_odd(meas_id);
 
-    const bool perform_bidirectional_ring = meas_id % 2 == 0 ? false : true;
-
-    if (!perform_bidirectional_ring) {
-        // store G2 in even measurement step (i.e. meas_id = 0, 2, 4...) as a previous G2
-        for (int s = 0; s < 2; ++s)
-        {
-            prev_G_[s] = G_[s];
-            prev_sendbuff_G_[s] = G_[s];
-        }
-    } else {
+    if (perform_bidirectional_ring == true) {
         // perform bidirectional communication in odd measurement step (i.e. meas_id = 1, 3, 5...)
         int my_concurrency_id, mpi_size;
         MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
@@ -617,18 +610,29 @@ void TpAccumulator<Parameters, linalg::GPU>::ringG(float& flop, const int meas_i
         const int left_neighbor  = (my_concurrency_id - 1 + mpi_size) % mpi_size;
         const int right_neighbor = (my_concurrency_id + 1 + mpi_size) %  mpi_size;
 
-        perform_one_communication_step(flop, left_neighbor, right_neighbor, mpi_size);
+        // get ready for send and receive
+        for (int s = 0; s < 2; ++s)
+        {
+            sendbuff_G_[s] = G_[s];
+        }
+
+        for(int icount=0; icount < (mpi_size-1); icount++) {
+            perform_one_communication_step(flop, left_neighbor, right_neighbor, mpi_size);
+        }
+
+    } else {
+        // store G2 in even measurement step (i.e. meas_id = 0, 2, 4...) as a previous G2
+        for (int s = 0; s < 2; ++s)
+        {
+            prev_G_[s] = G_[s];
+            prev_sendbuff_G_[s] = G_[s];
+        }
     }
 }
 
 template <class Parameters>
 void TpAccumulator<Parameters, linalg::GPU>::perform_one_communication_step(float& flop,
                                                 const int left_neighbor, const int right_neighbor, const int mpi_size) {
-    // get ready for send and receive
-    for (int s = 0; s < 2; ++s)
-    {
-        sendbuff_G_[s] = G_[s];
-    }
 
     MPI_Request recv_request_1, recv_request_2;
     MPI_Request send_request_1, send_request_2;
@@ -646,73 +650,72 @@ void TpAccumulator<Parameters, linalg::GPU>::perform_one_communication_step(floa
     //      a) #walker == #accumulator and shared-walk-and-accumulation-thread = true;
     //      b) and, local measurements are equal, and each accumulator should have same #measurement, i.e.
     //         measurements % ranks == 0 && local_measurement % threads == 0.
-    for(int icount=0; icount < (mpi_size-1); icount++)
+
+    // G2 from previous measurement step goes to counter-clockwise ring (i.e. receives from right, sends to left)
+    MPI_Irecv(prev_G_[0].ptr(), (prev_G_[0].size().first)*(prev_G_[0].size().second),
+              dca::parallel::MPITypeMap<RMatrixValueType>::value(),
+              right_neighbor, thread_id_ + 1 + 100, MPI_COMM_WORLD, &prev_recv_request_1);
+    MPI_Irecv(prev_G_[1].ptr(), (prev_G_[1].size().first)*(prev_G_[1].size().second),
+              dca::parallel::MPITypeMap<RMatrixValueType>::value(),
+              right_neighbor, thread_id_ + 1 + nr_accumulators_ + 100, MPI_COMM_WORLD, &prev_recv_request_2);
+
+    // G2 from current measurement step goes to counter-clockwise ring (i.e. receives from left, sends to right)
+    MPI_Irecv(G_[0].ptr(), (G_[0].size().first)*(G_[0].size().second),
+              dca::parallel::MPITypeMap<RMatrixValueType>::value(),
+              left_neighbor, thread_id_ + 1, MPI_COMM_WORLD, &recv_request_1);
+    MPI_Irecv(G_[1].ptr(), (G_[1].size().first)*(G_[1].size().second),
+              dca::parallel::MPITypeMap<RMatrixValueType>::value(),
+              left_neighbor, thread_id_ + 1 + nr_accumulators_, MPI_COMM_WORLD, &recv_request_2);
+
+
+    // G2 from previous measurement step goes to counter-clockwise ring (i.e. receives from right, sends to left)
+    MPI_Isend(prev_sendbuff_G_[0].ptr(), (prev_sendbuff_G_[0].size().first)*(prev_sendbuff_G_[0].size().second),
+              dca::parallel::MPITypeMap<RMatrixValueType>::value(),
+              left_neighbor, thread_id_ + 1 + 100, MPI_COMM_WORLD, &prev_send_request_1);
+    MPI_Isend(prev_sendbuff_G_[1].ptr(), (prev_sendbuff_G_[1].size().first)*(prev_sendbuff_G_[1].size().second),
+              dca::parallel::MPITypeMap<RMatrixValueType>::value(),
+              left_neighbor, thread_id_ + 1 + nr_accumulators_ + 100, MPI_COMM_WORLD, &prev_send_request_2);
+
+    // G2 from current measurement step goes to counter-clockwise ring (i.e. receives from left, sends to right)
+    MPI_Isend(sendbuff_G_[0].ptr(), (sendbuff_G_[0].size().first)*(sendbuff_G_[0].size().second),
+              dca::parallel::MPITypeMap<RMatrixValueType>::value(),
+              right_neighbor, thread_id_ + 1, MPI_COMM_WORLD, &send_request_1);
+    MPI_Isend(sendbuff_G_[1].ptr(), (sendbuff_G_[1].size().first)*(sendbuff_G_[1].size().second),
+              dca::parallel::MPITypeMap<RMatrixValueType>::value(),
+              right_neighbor, thread_id_ + 1 + nr_accumulators_, MPI_COMM_WORLD, &send_request_2);
+
+    // wait for previous G2 to be available again
+    MPI_Wait(&prev_recv_request_1, &prev_status_1);
+    MPI_Wait(&prev_recv_request_2, &prev_status_2);
+
+    for (std::size_t channel = 0; channel < G4_.size(); ++channel)
     {
-        // G2 from previous measurement step goes to counter-clockwise ring (i.e. receives from right, sends to left)
-        MPI_Irecv(prev_G_[0].ptr(), (prev_G_[0].size().first)*(prev_G_[0].size().second),
-                  dca::parallel::MPITypeMap<RMatrixValueType>::value(),
-                  right_neighbor, thread_id_ + 1 + 100, MPI_COMM_WORLD, &prev_recv_request_1);
-        MPI_Irecv(prev_G_[1].ptr(), (prev_G_[1].size().first)*(prev_G_[1].size().second),
-                  dca::parallel::MPITypeMap<RMatrixValueType>::value(),
-                  right_neighbor, thread_id_ + 1 + nr_accumulators_ + 100, MPI_COMM_WORLD, &prev_recv_request_2);
-
-        // G2 from current measurement step goes to counter-clockwise ring (i.e. receives from left, sends to right)
-        MPI_Irecv(G_[0].ptr(), (G_[0].size().first)*(G_[0].size().second),
-                  dca::parallel::MPITypeMap<RMatrixValueType>::value(),
-                  left_neighbor, thread_id_ + 1, MPI_COMM_WORLD, &recv_request_1);
-        MPI_Irecv(G_[1].ptr(), (G_[1].size().first)*(G_[1].size().second),
-                  dca::parallel::MPITypeMap<RMatrixValueType>::value(),
-                  left_neighbor, thread_id_ + 1 + nr_accumulators_, MPI_COMM_WORLD, &recv_request_2);
-
-
-        // G2 from previous measurement step goes to counter-clockwise ring (i.e. receives from right, sends to left)
-        MPI_Isend(prev_sendbuff_G_[0].ptr(), (prev_sendbuff_G_[0].size().first)*(prev_sendbuff_G_[0].size().second),
-                  dca::parallel::MPITypeMap<RMatrixValueType>::value(),
-                  left_neighbor, thread_id_ + 1 + 100, MPI_COMM_WORLD, &prev_send_request_1);
-        MPI_Isend(prev_sendbuff_G_[1].ptr(), (prev_sendbuff_G_[1].size().first)*(prev_sendbuff_G_[1].size().second),
-                  dca::parallel::MPITypeMap<RMatrixValueType>::value(),
-                  left_neighbor, thread_id_ + 1 + nr_accumulators_ + 100, MPI_COMM_WORLD, &prev_send_request_2);
-
-        // G2 from current measurement step goes to counter-clockwise ring (i.e. receives from left, sends to right)
-        MPI_Isend(sendbuff_G_[0].ptr(), (sendbuff_G_[0].size().first)*(sendbuff_G_[0].size().second),
-                  dca::parallel::MPITypeMap<RMatrixValueType>::value(),
-                  right_neighbor, thread_id_ + 1, MPI_COMM_WORLD, &send_request_1);
-        MPI_Isend(sendbuff_G_[1].ptr(), (sendbuff_G_[1].size().first)*(sendbuff_G_[1].size().second),
-                  dca::parallel::MPITypeMap<RMatrixValueType>::value(),
-                  right_neighbor, thread_id_ + 1 + nr_accumulators_, MPI_COMM_WORLD, &send_request_2);
-
-        // wait for previous G2 to be available again
-        MPI_Wait(&prev_recv_request_1, &prev_status_1);
-        MPI_Wait(&prev_recv_request_2, &prev_status_2);
-
-        for (std::size_t channel = 0; channel < G4_.size(); ++channel)
-        {
-            flop += prev_updateG4(channel);
-        }
-
-        // wait for current G2 to be available again
-        MPI_Wait(&recv_request_1, &status_1);
-        MPI_Wait(&recv_request_2, &status_2);
-
-        for (std::size_t channel = 0; channel < G4_.size(); ++channel)
-        {
-            flop += updateG4(channel);
-        }
-
-        // wait for sendbuf_G2 to be available again
-        MPI_Wait(&prev_send_request_1, &prev_status_3);
-        MPI_Wait(&prev_send_request_2, &prev_status_4);
-
-        MPI_Wait(&send_request_1, &status_3);
-        MPI_Wait(&send_request_2, &status_4);
-
-        // get ready for send again
-        for (int s = 0; s < 2; ++s)
-        {
-            sendbuff_G_[s].swap(G_[s]);
-            prev_sendbuff_G_[s].swap(prev_G_[s]);
-        }
+        flop += prev_updateG4(channel);
     }
+
+    // wait for current G2 to be available again
+    MPI_Wait(&recv_request_1, &status_1);
+    MPI_Wait(&recv_request_2, &status_2);
+
+    for (std::size_t channel = 0; channel < G4_.size(); ++channel)
+    {
+        flop += updateG4(channel);
+    }
+
+    // wait for sendbuf_G2 to be available again
+    MPI_Wait(&prev_send_request_1, &prev_status_3);
+    MPI_Wait(&prev_send_request_2, &prev_status_4);
+
+    MPI_Wait(&send_request_1, &status_3);
+    MPI_Wait(&send_request_2, &status_4);
+
+    // get ready for send again
+    for (int s = 0; s < 2; ++s)
+    {
+        sendbuff_G_[s].swap(G_[s]);
+        prev_sendbuff_G_[s].swap(prev_G_[s]);
+    }
+
 }
 
 template <class Parameters>
