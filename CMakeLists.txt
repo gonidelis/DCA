@@ -5,7 +5,7 @@
 # CMake build script for DCA++
 
 cmake_minimum_required(VERSION 3.3)
-project(DCA++ C CXX)
+project(DCA++ C CXX CUDA)
 
 ################################################################################
 # Disable in-source builds.
@@ -144,15 +144,17 @@ set(DCA_LIBS
   ${DCA_CONCURRENCY_LIB}
   ${DCA_THREADING_LIBS}
   lapack
-  cuda_utils
 )
 
 if (DCA_HAVE_CUDA)
+  list(APPEND DCA_CUDA_LIBS
+    cuda_utils)
   list(APPEND DCA_LIBS
     blas_kernels
+    ctaux_walker_kernels
     dnfft_kernels
     lapack_kernels
-    mc_kernels
+    mc_tools_kernels
     special_transform_kernels
     ${DCA_CUDA_LIBS})
 endif()
