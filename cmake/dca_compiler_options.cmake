@@ -18,7 +18,7 @@
 # unset(CMAKE_REQUIRED_FLAGS)
 
 # Warnings
-set(DCA_WARNINGS -Wall -Wextra -Wpedantic -Wno-sign-compare -Wno-dangling-else)
+#set(DCA_WARNINGS -Wall -Wextra -Wpedantic -Wno-sign-compare -Wno-dangling-else)
 
 # Languange standard
 set(DCA_STD_FLAG -std=c++17)
@@ -34,21 +34,23 @@ add_compile_options("-pthread")
 if (DCA_HAVE_CUDA)
   if (CUDA_VERSION VERSION_GREATER "8.1.0")
     list(APPEND CUDA_NVCC_FLAGS
-      -arch=${CUDA_GPU_ARCH}
+	    #-arch=${CUDA_GPU_ARCH}
       -std=c++14
-      -Xcompiler -Wall
+      #-Xcompiler -Wall
       -Xcompiler -Wextra
       -Xcompiler -Wno-unused-parameter
       -Xcompiler -Wno-switch
-      -Xcompiler ${DCA_THREADING_FLAGS})
+      #-Xcompiler ${DCA_THREADING_FLAGS})
+      )
   else (CUDA_VERSION VERSION_GREATER "8.1.0")
     list(APPEND CUDA_NVCC_FLAGS
-      -arch=${CUDA_GPU_ARCH}
+	    #-arch=${CUDA_GPU_ARCH}
       -std=c++11
-      -Xcompiler -Wall
+      #-Xcompiler -Wall
       -Xcompiler -Wextra
       -Xcompiler -Wno-unused-parameter
       -Xcompiler -Wno-switch
-      -Xcompiler ${DCA_THREADING_FLAGS})
+      #-Xcompiler ${DCA_THREADING_FLAGS})
+      )
   endif (CUDA_VERSION VERSION_GREATER "8.1.0")
 endif()
