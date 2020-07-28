@@ -20,6 +20,7 @@
 #include "dca/io/json/json_reader.hpp"
 #include "dca/util/git_version.hpp"
 #include "dca/util/modules.hpp"
+#include "hpx/hpx_main.hpp"
 
 int main(int argc, char** argv) {
   if (argc < 2) {

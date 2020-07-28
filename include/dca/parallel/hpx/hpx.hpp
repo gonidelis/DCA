@@ -22,6 +22,7 @@
 #include <hpx/lcos/future.hpp>
 #include <hpx/include/threads.hpp>
 #include <hpx/basic_execution/this_thread.hpp>
+#include <hpx/threading_base/annotated_function.hpp>
 
 #include <vector>
 #include <thread>
@@ -131,7 +132,6 @@ public:
 #endif
     return hpx::async(f, args...);
   }
-
   // We will not be using the pool for a while - put threads to sleep
   void suspend() {
       //hpx::suspend();
