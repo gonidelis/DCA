@@ -11,6 +11,8 @@
 // Main file for the DCA(+) calculation.
 // Usage: ./main_dca input_file.json
 
+#include <hpx/hpx_main.hpp>
+
 #include <string>
 #include <iostream>
 
