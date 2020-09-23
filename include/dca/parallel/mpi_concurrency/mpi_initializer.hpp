@@ -17,7 +17,7 @@ namespace parallel {
 // dca::parallel::
 
 class MPIInitializer {
-protected:
+public:
   MPIInitializer(int argc, char** argv);
 
   ~MPIInitializer();

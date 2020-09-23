@@ -8,6 +8,10 @@ if(DCA_HAVE_CUDA)
   target_compile_definitions(parallel_mpi_concurrency PRIVATE DCA_HAVE_CUDA)
 endif()
 
+if(DCA_WITH_CUDA_AWARE_MPI)
+  target_compile_definitions(parallel_mpi_concurrency PRIVATE DCA_HAVE_CUDA_AWARE_MPI)
+endif()
+
 # if find_package(MPI) was used we need this, otherwise it does nothing
 target_link_libraries(parallel_mpi_concurrency PUBLIC ${MPI_C_LIBRARIES})
 
