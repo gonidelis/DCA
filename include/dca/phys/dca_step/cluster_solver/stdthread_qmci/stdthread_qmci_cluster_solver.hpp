@@ -14,6 +14,8 @@
 #ifndef DCA_PHYS_DCA_STEP_CLUSTER_SOLVER_STDTHREAD_QMCI_STDTHREAD_QMCI_CLUSTER_SOLVER_HPP
 #define DCA_PHYS_DCA_STEP_CLUSTER_SOLVER_STDTHREAD_QMCI_STDTHREAD_QMCI_CLUSTER_SOLVER_HPP
 
+#include <hpx/include/lcos.hpp>
+
 #include <atomic>
 #include <iostream>
 #include <future>
@@ -167,6 +169,8 @@ void StdThreadQmciClusterSolver<QmciSolver>::integrate() {
   std::vector<dca::parallel::thread_traits::future_type<void>> futures;
 
   dca::profiling::WallTime start_time;
+
+  hpx::mpi::experimental::enable_user_polling enable_polling;
 
   auto& pool = dca::parallel::ThreadPool::get_instance();
   for (int i = 0; i < thread_task_handler_.size(); ++i) {
