@@ -22,13 +22,12 @@ MPIInitializer::MPIInitializer(int argc, char** argv) {
   int provided = 0;
   int mpi_initialized = -1;
   MPI_Initialized(&mpi_initialized);
-#ifdef DCA_WITH_CUDA_AWARE_MPI
+#ifdef DCA_HAVE_CUDA_AWARE_MPI
   constexpr int required = MPI_THREAD_MULTIPLE;
 #else
   constexpr int required = MPI_THREAD_FUNNELED;
 #endif
-  if(!mpi_initialized)
-  {
+  if (!mpi_initialized) {
     MPI_Init_thread(&argc, &argv, required, &provided);
     if (provided < required)
       throw(std::logic_error("MPI does not provide adequate thread support."));
@@ -36,7 +35,10 @@ MPIInitializer::MPIInitializer(int argc, char** argv) {
 }
 
 MPIInitializer::~MPIInitializer() {
-  MPI_Finalize();
+  int mpi_finalized = -1;
+  MPI_Finalized(&mpi_finalized);
+  if (!mpi_finalized)
+    MPI_Finalize();
 }
 
 void MPIInitializer::abort() const {
