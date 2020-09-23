@@ -11,7 +11,7 @@
 // Main file for the DCA(+) calculation.
 // Usage: ./main_dca input_file.json
 
-#include <hpx/hpx_main.hpp>
+#include <hpx/hpx_init.hpp>
 
 #include <string>
 #include <iostream>
@@ -24,12 +24,7 @@
 #include "dca/util/modules.hpp"
 #include "dca/application/dca_loop_dispatch.hpp"
 
-int main(int argc, char** argv) {
-  if (argc < 2) {
-    std::cerr << "Usage: " << argv[0] << " input_file.json" << std::endl;
-    return -1;
-  }
-
+int hpx_main(int argc, char** argv) {
   Concurrency concurrency(argc, argv);
 
   try {
@@ -98,5 +93,15 @@ int main(int argc, char** argv) {
     concurrency.abort();
   }
 
-  return 0;
+  return hpx::finalize();
+}
+
+int main(int argc, char** argv) {
+  if (argc < 2) {
+    std::cerr << "Usage: " << argv[0] << " input_file.json" << std::endl;
+    return -1;
+  }
+
+  dca::parallel::MPIInitializer init(argc, argv);
+  return hpx::init(argc, argv);
 }
