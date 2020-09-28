@@ -29,6 +29,7 @@
 
 #include "dca/config/threading.hpp"
 #include <hpx/modules/async_mpi.hpp>
+#include <hpx/util/unwrap.hpp>
 
 namespace dca {
 namespace phys {
@@ -346,25 +347,25 @@ hpx::future<void> TpAccumulator<Parameters, linalg::GPU, DistType::MPI>::perform
   //         measurements % ranks == 0 && local_measurement % threads == 0.
 
   if (right) {
-    auto f_recv = receive(right_G_, left_neighbor, right_recv_requests_, true, exec);
-    auto f_send = send(right_sendbuff_G_, right_neighbor, right_send_requests_, true, exec);
-    hpx::wait_all(f_recv);
+    auto f_recv = receive(right_G_, left_neighbor, right_recv_requests_, right, exec);
+    auto f_send = send(right_sendbuff_G_, right_neighbor, right_send_requests_, right, exec);
+    hpx::util::unwrap(f_recv);
     for (std::size_t channel = 0; channel < G4_.size(); ++channel) {
       flop += updateG4(channel, right_G_);
     }
-    hpx::wait_all(f_send);
+    hpx::util::unwrap(f_send);
     for (int s = 0; s < 2; ++s) {
       right_sendbuff_G_[s].swap(right_G_[s]);
     }
   }
   else {
-    auto f_recv = receive(left_G_, right_neighbor, left_recv_requests_, false, exec);
-    auto f_send = send(left_sendbuff_G_, left_neighbor, left_send_requests_, false, exec);
-    hpx::wait_all(f_recv);
+    auto f_recv = receive(left_G_, right_neighbor, left_recv_requests_, !right, exec);
+    auto f_send = send(left_sendbuff_G_, left_neighbor, left_send_requests_, !right, exec);
+    hpx::util::unwrap(f_recv);
     for (std::size_t channel = 0; channel < G4_.size(); ++channel) {
       flop += updateG4(channel, left_G_);
     }
-    hpx::wait_all(f_send);
+    hpx::util::unwrap(f_send);
     for (int s = 0; s < 2; ++s) {
       left_sendbuff_G_[s].swap(left_G_[s]);
     }
@@ -394,11 +395,9 @@ void TpAccumulator<Parameters, linalg::GPU, DistType::MPI>::ringG(float& flop, c
             return perform_one_communication_step(flop, true);
           });
     }
-
-    right_communication_step.get();
   }
   else {
-
+    right_communication_step.get();
     // store G2 in left measurement step (i.e. meas_id = 0, 2, 4...) as a left G2
     for (int s = 0; s < 2; ++s) {
       left_G_[s] = G_[s];

@@ -5,7 +5,7 @@
 // See LICENSE.txt for terms of usage.
 // See CITATION.txt for citation guidelines if you use this code for scientific publications.
 //
-// Author: John Biddiscombe (john.biddiscombe@cscs.ch) 
+// Author: John Biddiscombe (john.biddiscombe@cscs.ch)
 //         Weile Wei (wwei9@lsu.edu)
 //         Urs R. Haehner (haehneru@itp.phys.ethz.ch)
 //
@@ -19,9 +19,9 @@
 #include <hpx/hpx.hpp>
 #include <hpx/synchronization/spinlock.hpp>
 #include <hpx/synchronization/condition_variable.hpp>
-#include <hpx/lcos/future.hpp>
+#include <hpx/future.hpp>
 #include <hpx/include/threads.hpp>
-#include <hpx/basic_execution/this_thread.hpp>
+#include <hpx/modules/execution_base.hpp>
 
 #include <vector>
 #include <thread>
