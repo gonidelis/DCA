@@ -116,23 +116,17 @@ private:
 
   float updateG4(const std::size_t channel_index, std::array<RMatrix, 2>& G_array);
 
-  void send(const std::array<RMatrix, 2>& data, int target, std::array<MPI_Request, 2>& request,
-            const bool odd);
-  void receive(std::array<RMatrix, 2>& data, int source, std::array<MPI_Request, 2>& request,
-               const bool odd);
+  void send(const std::array<RMatrix, 2>& data, int target, std::array<MPI_Request, 2>& request);
+  void receive(std::array<RMatrix, 2>& data, int source, std::array<MPI_Request, 2>& request);
 
   using BaseClass::channels_;
   using BaseClass::G4_;
 
   // send buffer for pipeline ring algorithm
-  std::array<RMatrix, 2> even_G_;
-  std::array<RMatrix, 2> odd_sendbuff_G_;
-  std::array<RMatrix, 2> even_sendbuff_G_;
+  std::array<RMatrix, 2> sendbuff_G_;
 
-  std::array<MPI_Request, 2> odd_recv_requests_{MPI_REQUEST_NULL, MPI_REQUEST_NULL};
-  std::array<MPI_Request, 2> even_recv_requests_{MPI_REQUEST_NULL, MPI_REQUEST_NULL};
-  std::array<MPI_Request, 2> odd_send_requests_{MPI_REQUEST_NULL, MPI_REQUEST_NULL};
-  std::array<MPI_Request, 2> even_send_requests_{MPI_REQUEST_NULL, MPI_REQUEST_NULL};
+  std::array<MPI_Request, 2> recv_requests_{MPI_REQUEST_NULL, MPI_REQUEST_NULL};
+  std::array<MPI_Request, 2> send_requests_{MPI_REQUEST_NULL, MPI_REQUEST_NULL};
 
 #ifndef DCA_HAVE_CUDA_AWARE_MPI
   std::array<std::vector<Complex>, 2> sendbuffer_;
@@ -333,57 +327,36 @@ void TpAccumulator<Parameters, linalg::GPU, DistType::MPI>::perform_one_communic
   //      b) and, local measurements are equal, and each accumulator should have same #measurement, i.e.
   //         measurements % ranks == 0 && local_measurement % threads == 0.
 
-  receive(G_, left_neighbor, odd_recv_requests_, true);
-  receive(even_G_, right_neighbor, even_recv_requests_, false);
-  send(odd_sendbuff_G_, right_neighbor, odd_send_requests_, true);
-  send(even_sendbuff_G_, left_neighbor, even_send_requests_, false);
+  receive(G_, left_neighbor, recv_requests_);
+  send(sendbuff_G_, right_neighbor, send_requests_);
 
   // wait for G2 to be available again
   for (int s = 0; s < 2; ++s)
-    MPI_Wait(&odd_recv_requests_[s], MPI_STATUSES_IGNORE);
-  for (int s = 0; s < 2; ++s)
-    MPI_Wait(&even_recv_requests_[s], MPI_STATUSES_IGNORE);
+    MPI_Wait(&recv_requests_[s], MPI_STATUSES_IGNORE);
 
   // use newly copied G2 to update G4
   for (std::size_t channel = 0; channel < G4_.size(); ++channel) {
     flop += updateG4(channel, G_);
-    flop += updateG4(channel, even_G_);
   }
 
   // wait for sendbuf_G2 to be available again
   for (int s = 0; s < 2; ++s)
-    MPI_Wait(&odd_send_requests_[s], MPI_STATUSES_IGNORE);
-  for (int s = 0; s < 2; ++s)
-    MPI_Wait(&even_send_requests_[s], MPI_STATUSES_IGNORE);
+    MPI_Wait(&send_requests_[s], MPI_STATUSES_IGNORE);
 
   // get ready for send again
   for (int s = 0; s < 2; ++s) {
-    odd_sendbuff_G_[s].swap(G_[s]);
-    even_sendbuff_G_[s].swap(even_G_[s]);
+    sendbuff_G_[s].swap(G_[s]);
   }
 }
 
 template <class Parameters>
 void TpAccumulator<Parameters, linalg::GPU, DistType::MPI>::ringG(float& flop, const int meas_id) {
-  auto is_odd = [](int const i) -> bool { return ((i % 2) == 1); };
-  bool const perform_bidirectional_ring = is_odd(meas_id);
-
-  if (perform_bidirectional_ring == true) {
-    // get ready for current send and receive (i.e. meas_id = 1, 3, 5...)
-    for (int s = 0; s < 2; ++s) {
-      odd_sendbuff_G_[s] = G_[s];
-    }
-
-    for (int icount = 0; icount < (mpi_size - 1); icount++) {
-      perform_one_communication_step(flop);
-    }
+  for (int s = 0; s < 2; ++s) {
+    sendbuff_G_[s] = G_[s];
   }
-  else {
-    // store G2 in even measurement step (i.e. meas_id = 0, 2, 4...) as a even G2
-    for (int s = 0; s < 2; ++s) {
-      even_G_[s] = G_[s];
-      even_sendbuff_G_[s] = G_[s];
-    }
+
+  for (int icount = 0; icount < (mpi_size - 1); icount++) {
+    perform_one_communication_step(flop);
   }
 }
 
@@ -396,23 +369,14 @@ auto TpAccumulator<Parameters, linalg::GPU, DistType::MPI>::get_G4() -> std::vec
 template <class Parameters>
 void TpAccumulator<Parameters, linalg::GPU, DistType::MPI>::send(const std::array<RMatrix, 2>& data,
                                                                  int target,
-                                                                 std::array<MPI_Request, 2>& request,
-                                                                 const bool odd) {
+                                                                 std::array<MPI_Request, 2>& request) {
   using dca::parallel::MPITypeMap;
   const auto g_size = data[0].size().first * data[0].size().second;
 
 #ifdef DCA_HAVE_CUDA_AWARE_MPI
-  if (odd) {
-    for (int s = 0; s < 2; ++s) {
-      MPI_Isend(data[s].ptr(), g_size, MPITypeMap<Complex>::value(), target, thread_id_ + 1,
-                MPI_COMM_WORLD, &request[s]);
-    }
-  }
-  else {
-    for (int s = 0; s < 2; ++s) {
-      MPI_Isend(data[s].ptr(), g_size, MPITypeMap<Complex>::value(), target,
-                thread_id_ + 1 + nr_accumulators_, MPI_COMM_WORLD, &request[s]);
-    }
+  for (int s = 0; s < 2; ++s) {
+    MPI_Isend(data[s].ptr(), g_size, MPITypeMap<Complex>::value(), target, thread_id_ + 1,
+              MPI_COMM_WORLD, &request[s]);
   }
 
 #else
@@ -430,22 +394,14 @@ void TpAccumulator<Parameters, linalg::GPU, DistType::MPI>::send(const std::arra
 
 template <class Parameters>
 void TpAccumulator<Parameters, linalg::GPU, DistType::MPI>::receive(
-    std::array<RMatrix, 2>& data, int source, std::array<MPI_Request, 2>& request, const bool odd) {
+    std::array<RMatrix, 2>& data, int source, std::array<MPI_Request, 2>& request) {
   using dca::parallel::MPITypeMap;
   const auto g_size = data[0].size().first * data[0].size().second;
 
 #ifdef DCA_HAVE_CUDA_AWARE_MPI
-  if (odd) {
-    for (int s = 0; s < 2; ++s) {
-      MPI_Irecv(data[s].ptr(), g_size, MPITypeMap<Complex>::value(), source, thread_id_ + 1,
-                MPI_COMM_WORLD, &request[s]);
-    }
-  }
-  else {
-    for (int s = 0; s < 2; ++s) {
-      MPI_Irecv(data[s].ptr(), g_size, MPITypeMap<Complex>::value(), source,
-                thread_id_ + 1 + nr_accumulators_, MPI_COMM_WORLD, &request[s]);
-    }
+  for (int s = 0; s < 2; ++s) {
+    MPI_Irecv(data[s].ptr(), g_size, MPITypeMap<Complex>::value(), source, thread_id_ + 1,
+              MPI_COMM_WORLD, &request[s]);
   }
 
 #else
