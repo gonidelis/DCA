@@ -277,6 +277,9 @@ public:
   template <class Concurrency>
   function gather(const Concurrency& concurrency) const;
 
+  template <class Concurrency>
+  function gather_row(const Concurrency& concurrency) const;
+
 private:
   std::string name_;
   std::string function_type;
@@ -698,6 +701,15 @@ function<scalartype, domain> function<scalartype, domain>::gather(const Concurre
   function result(name_);
 
   concurrency.gather(*this, result, concurrency);
+  return result;
+}
+
+template <typename scalartype, class domain>
+template <class Concurrency>
+function<scalartype, domain> function<scalartype, domain>::gather_row(const Concurrency& concurrency) const {
+  function result(name_);
+
+  concurrency.gather_row(*this, result, concurrency);
   return result;
 }
 

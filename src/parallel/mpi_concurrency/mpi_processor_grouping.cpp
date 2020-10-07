@@ -42,6 +42,22 @@ MPIProcessorGrouping::MPIProcessorGrouping(bool (*check)()) {
     id_ = -1;
     printRemovedProcesses();
   }
+#ifdef DCA_HAVE_CUDA_AWARE_MPI
+  // Determine color based on ordering
+  // every consecutive 3 ranks are grouped as 1 color
+  color_row_ = id_ / 3;
+  color_col_ = id_ % 3;
+  // Split the communicator based on the color and use the
+  // original rank for ordering
+
+  MPI_Comm_split(MPI_communication_, color_row_, id_, &row_comm_);
+  MPI_Comm_rank(row_comm_, &row_id_);
+  MPI_Comm_size(row_comm_, &row_size_);
+
+  MPI_Comm_split(MPI_communication_, color_col_, id_, &col_comm_);
+  MPI_Comm_rank(col_comm_, &col_id_);
+  MPI_Comm_size(col_comm_, &col_size_);
+#endif
 }
 
 MPIProcessorGrouping::~MPIProcessorGrouping() {

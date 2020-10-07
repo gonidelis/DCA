@@ -128,6 +128,11 @@ private:
   std::array<MPI_Request, 2> recv_requests_{MPI_REQUEST_NULL, MPI_REQUEST_NULL};
   std::array<MPI_Request, 2> send_requests_{MPI_REQUEST_NULL, MPI_REQUEST_NULL};
 
+  int color_ = -1;
+  int row_size_ = -1;
+  int row_id_ = -1;
+  MPI_Comm row_comm_ = MPI_COMM_NULL;
+
 #ifndef DCA_HAVE_CUDA_AWARE_MPI
   std::array<std::vector<Complex>, 2> sendbuffer_;
   std::array<std::vector<Complex>, 2> recvbuffer_;
@@ -145,8 +150,15 @@ TpAccumulator<Parameters, linalg::GPU, DistType::MPI>::TpAccumulator(
 
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
-  local_g4_size = dca::util::ceilDiv(local_g4_size, std::size_t(mpi_size));
-  start_ = local_g4_size * my_rank;
+
+  auto const & concurrecny = pars.get_concurrency();
+  color_ = concurrecny.get_color();
+  row_size_ = concurrecny.get_row_size();
+  row_id_ = concurrecny.get_row_id();
+  row_comm_ = concurrecny.get_row_comm();
+
+  local_g4_size = dca::util::ceilDiv(local_g4_size, std::size_t(row_size_));
+  start_ = local_g4_size * row_id_;
   end_ = std::min(tp_dmn.get_size(), start_ + local_g4_size);
 
   // possible these can both go into the parent class constructor
@@ -315,8 +327,8 @@ float TpAccumulator<Parameters, linalg::GPU, DistType::MPI>::updateG4(
 template <class Parameters>
 void TpAccumulator<Parameters, linalg::GPU, DistType::MPI>::perform_one_communication_step(float& flop) {
   // get rank index of left and right neighbor
-  int left_neighbor = (my_rank - 1 + mpi_size) % mpi_size;
-  int right_neighbor = (my_rank + 1 + mpi_size) % mpi_size;
+  int left_neighbor = (row_id_ - 1 + row_size_) % row_size_;
+  int right_neighbor = (row_id_ + 1 + row_size_) % row_size_;
 
   // Pipepline ring algorithm in the following for-loop:
   // 1) At each time step, local rank receives a new G2 from left hand neighbor,
@@ -355,7 +367,7 @@ void TpAccumulator<Parameters, linalg::GPU, DistType::MPI>::ringG(float& flop, c
     sendbuff_G_[s] = G_[s];
   }
 
-  for (int icount = 0; icount < (mpi_size - 1); icount++) {
+  for (int icount = 0; icount < (row_size_ - 1); icount++) {
     perform_one_communication_step(flop);
   }
 }
@@ -376,7 +388,7 @@ void TpAccumulator<Parameters, linalg::GPU, DistType::MPI>::send(const std::arra
 #ifdef DCA_HAVE_CUDA_AWARE_MPI
   for (int s = 0; s < 2; ++s) {
     MPI_Isend(data[s].ptr(), g_size, MPITypeMap<Complex>::value(), target, thread_id_ + 1,
-              MPI_COMM_WORLD, &request[s]);
+              row_comm_, &request[s]);
   }
 
 #else
@@ -401,7 +413,7 @@ void TpAccumulator<Parameters, linalg::GPU, DistType::MPI>::receive(
 #ifdef DCA_HAVE_CUDA_AWARE_MPI
   for (int s = 0; s < 2; ++s) {
     MPI_Irecv(data[s].ptr(), g_size, MPITypeMap<Complex>::value(), source, thread_id_ + 1,
-              MPI_COMM_WORLD, &request[s]);
+              row_comm_, &request[s]);
   }
 
 #else

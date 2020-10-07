@@ -75,6 +75,33 @@ public:
 
   friend std::ostream& operator<<(std::ostream& some_ostream, const MPIConcurrency& this_concurrency);
 
+#ifdef DCA_HAVE_CUDA_AWARE_MPI
+  inline int get_row_id() const {
+    assert(MPIProcessorGrouping::get_row_id() > -1);
+    return MPIProcessorGrouping::get_row_id();
+  }
+
+  inline int get_row_size() const {
+    assert(MPIProcessorGrouping::get_row_size() > -1);
+    return MPIProcessorGrouping::get_row_size();
+  }
+
+  inline int get_col_id() const {
+    assert(MPIProcessorGrouping::get_col_id() > -1);
+    return MPIProcessorGrouping::get_col_id();
+  }
+
+  inline int get_col_size() const {
+    assert(MPIProcessorGrouping::get_col_size() > -1);
+    return MPIProcessorGrouping::get_col_size();
+  }
+
+  inline int col_first() const {
+    assert(MPIProcessorGrouping::get_col_first() > -1);
+    return MPIProcessorGrouping::get_col_first();
+  }
+#endif
+
 private:
   constexpr static char parallel_type_str_[] = "MPIConcurrency";
 };

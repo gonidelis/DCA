@@ -37,9 +37,16 @@ public:
   void gather(const func::function<Scalar, DmnIn>& f_in, func::function<Scalar, DmnOut>& f_out,
               const Gang& gang) const;
 
+  template <class Scalar, class DmnIn, class DmnOut, class Gang>
+  void gather_row(const func::function<Scalar, DmnIn>& f_in, func::function<Scalar, DmnOut>& f_out,
+              const Gang& gang) const;
+
 private:
   template <class T, class Gang>
   void gather(const T* in, T* out, int local_n, const Gang& gang) const;
+
+  template <class T, class Gang>
+  void gather_row(const T* in, T* out, int local_n, const Gang& gang) const;
 };
 
 template <class Scalar, class DmnIn, class DmnOut, class Gang>
@@ -61,6 +68,24 @@ void MPIGather::gather(const T* in, T* out, int local_n, const Gang& gang) const
                 gang.get());
 }
 
+template <class Scalar, class DmnIn, class DmnOut, class Gang>
+void MPIGather::gather_row(const func::function<Scalar, DmnIn>& f_in,
+                       func::function<Scalar, DmnOut>& f_out, const Gang& gang) const {
+  std::vector<Scalar> gathered(f_in.size() * gang.get_row_size());
+  gather_row(f_in.values(), gathered.data(), f_in.size(), gang);
+
+  if (f_out.size() > gathered.size())
+    throw(std::logic_error("Output function is too large."));
+
+  // TODO: move.
+  std::copy_n(gathered.data(), f_out.size(), f_out.values());
+}
+
+template <class T, class Gang>
+void MPIGather::gather_row(const T* in, T* out, int local_n, const Gang& gang) const {
+  MPI_Allgather(in, local_n, MPITypeMap<T>::value(), out, local_n, MPITypeMap<T>::value(),
+                gang.get_row_comm());
+}
 }  // namespace parallel
 }  // namespace dca
 

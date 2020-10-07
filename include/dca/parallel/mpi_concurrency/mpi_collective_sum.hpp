@@ -17,7 +17,7 @@
 #define DCA_PARALLEL_MPI_CONCURRENCY_MPI_COLLECTIVE_SUM_HPP
 
 #include <algorithm>  // std::min
-#include <numeric>  // std::partial_sum
+#include <numeric>    // std::partial_sum
 #include <map>
 #include <string>
 #include <utility>  // std::move, std::swap
@@ -64,6 +64,9 @@ public:
   // Wrapper to MPI_Reduce.
   template <typename Scalar, class Domain>
   void localSum(func::function<Scalar, Domain>& f, int root_id) const;
+
+  template <typename Scalar, class Domain>
+  void colSum(func::function<Scalar, Domain>& f, int root_id) const;
 
   // Delay the execution of sum (implemented with MPI_Allreduce) until 'resolveSums' is called,
   // or 'delayedSum' is called with an object of different Scalar type.
@@ -166,6 +169,9 @@ private:
   // Compute the sum on process 'rank_id', or all processes if rank_id == -1.
   template <typename T>
   void sum(const T* in, T* out, std::size_t n, int rank_id = -1) const;
+
+  template <typename T>
+  void colsum(const T* in, T* out, std::size_t n, int rank_id = -1) const;
 
   template <typename T>
   void delayedSum(T* in, std::size_t n);
@@ -291,6 +297,18 @@ void MPICollectiveSum::localSum(func::function<scalar_type, domain>& f, int id) 
   func::function<scalar_type, domain> f_sum;
 
   sum(f.values(), f_sum.values(), f.size(), id);
+
+  f = std::move(f_sum);
+}
+
+template <typename scalar_type, class domain>
+void MPICollectiveSum::colSum(func::function<scalar_type, domain>& f, int id) const {
+  if (id < 0 || id > get_size())
+    throw(std::out_of_range("id out of range."));
+
+  func::function<scalar_type, domain> f_sum;
+
+  colsum(f.values(), f_sum.values(), f.size(), id);
 
   f = std::move(f_sum);
 }
@@ -574,6 +592,25 @@ void MPICollectiveSum::sum(const T* in, T* out, std::size_t n, int root_id) cons
     else {
       MPI_Reduce(in + start, out + start, msg_size, MPITypeMap<T>::value(), MPI_SUM, root_id,
                  MPIProcessorGrouping::get());
+    }
+  }
+}
+
+template <typename T>
+void MPICollectiveSum::colsum(const T* in, T* out, std::size_t n, int root_id) const {
+  // On summit large messages hangs if sizeof(floating point type) * message_size > 2^31-1.
+  constexpr std::size_t max_size = dca::util::IsComplex<T>::value
+                                       ? 2 * (std::numeric_limits<int>::max() / sizeof(T))
+                                       : std::numeric_limits<int>::max() / sizeof(T);
+  for (std::size_t start = 0; start < n; start += max_size) {
+    const int msg_size = std::min(n - start, max_size);
+    if (root_id == -1) {
+      MPI_Allreduce(in + start, out + start, msg_size, MPITypeMap<T>::value(), MPI_SUM,
+                    MPIProcessorGrouping::get());
+    }
+    else {
+      MPI_Reduce(in + start, out + start, msg_size, MPITypeMap<T>::value(), MPI_SUM, root_id,
+                 MPIProcessorGrouping::get_col_comm());
     }
   }
 }

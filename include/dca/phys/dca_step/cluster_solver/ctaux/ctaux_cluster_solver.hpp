@@ -461,7 +461,8 @@ void CtauxClusterSolver<device_t, Parameters, Data, DIST>::collect_measurements(
         {
           // do nothing, no accumulation should be performed as G4 size cannot fit into one GPU
           // reserve this function for testing purpose only
-          // concurrency_.gatherv(G4, concurrency_.first());
+          // G4 = G4.gather_row(concurrency_);
+          //concurrency_.colSum(G4, concurrency_.col_first());
         }
         else {
           if (compute_jack_knife_)
