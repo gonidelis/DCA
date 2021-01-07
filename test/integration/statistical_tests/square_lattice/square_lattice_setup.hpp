@@ -48,7 +48,11 @@ constexpr int n_frequencies = 10;
 constexpr dca::linalg::DeviceType device = dca::linalg::GPU;
 #else
 constexpr dca::linalg::DeviceType device = dca::linalg::CPU;
+<<<<<<< HEAD
 #endif  // DCA_HAVE_CUDA
+=======
+#endif // DCA_HAVE_CUDA
+>>>>>>> dca/master
 
 const std::string test_directory =
     DCA_SOURCE_DIR "/test/integration/statistical_tests/square_lattice/";
@@ -73,7 +77,8 @@ template <ClusterSolverName name = CT_AUX>
 struct ClusterSolverSelector;
 template <>
 struct ClusterSolverSelector<CT_AUX> {
-  using type = dca::phys::solver::CtauxClusterSolver<device, ParametersType<CT_AUX>, DcaData<CT_AUX>>;
+  using type = dca::phys::solver::CtauxClusterSolver<device, ParametersType<CT_AUX>,
+        DcaData<CT_AUX>>;
 };
 template <>
 struct ClusterSolverSelector<CT_INT> {
@@ -84,7 +89,6 @@ using QuantumClusterSolver = typename ClusterSolverSelector<name>::type;
 
 template <ClusterSolverName name = CT_AUX>
 using ThreadedSolver = dca::phys::solver::StdThreadQmciClusterSolver<QuantumClusterSolver<name>>;
->>>>>>> dca/master
 
 using SigmaCutDomain = dca::math::util::SigmaCutDomain<dca::math::util::details::Kdmn>;
 using SigmaDomain = dca::math::util::SigmaDomain<dca::math::util::details::Kdmn>;
