@@ -19,5 +19,9 @@ set(FFTW_ROOT $ENV{FFTW_DIR}/.. CACHE PATH "Path to fftw3 library")
 
 # For the GPU support we also need MAGMA.
 # MAGMA has been installed with EasyBuild.
-set(MAGMA_DIR $ENV{EBROOTMAGMA} CACHE PATH
+set(MAGMA_DIR $ENV{MAGMAROOT} CACHE PATH
   "Path to the MAGMA installation directory. Hint for CMake to find MAGMA.")
+
+
+# Intel MKL flags
+set(CMAKE_EXE_LINKER_FLAGS '-L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl' CACHE INTERNAL "" FORCE)

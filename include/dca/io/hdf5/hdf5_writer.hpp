@@ -45,12 +45,8 @@ public:
 
   ~HDF5Writer();
 
-  constexpr bool is_reader() {
-    return false;
-  }
-  constexpr bool is_writer() {
-    return true;
-  }
+  constexpr static bool is_reader = false;
+  constexpr static bool is_writer = true;
 
   void open_file(std::string file_name_ref, bool overwrite = true);
   void close_file();
@@ -112,21 +108,15 @@ public:
     return execute(name, static_cast<io::Buffer::Container>(buffer));
   }
 
-  operator bool() const {
+  operator bool() const noexcept {
     return static_cast<bool>(file_);
   }
 
-  void lock() {
-    mutex_.lock();
-  }
-
-  void unlock() {
-    mutex_.unlock();
+  void set_verbose(bool verbose) {
+    verbose_ = verbose;
   }
 
 private:
-  bool fexists(const char* filename);
-
   bool exists(const std::string& name) const;
 
   H5::DataSet write(const std::string& name, const std::vector<hsize_t>& size, H5::DataType type,
@@ -142,8 +132,6 @@ private:
   std::vector<std::string> my_paths_;
 
   bool verbose_;
-
-  std::mutex mutex_;
 
   std::vector<hsize_t> size_check_;
 };
