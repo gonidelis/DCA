@@ -481,10 +481,15 @@ void DcaData<Parameters, DT>::write(Writer& writer) {
 
   // When distributed_g4_enabled, one should assume G4 size is fairly large and then should not
   // accumulate G4 into one node and thus cannot write it out
-  if (parameters_.isAccumulatingG4()) {
-    if constexpr (DT != DistType::BLOCKED) {
-      for (const auto& G4_channel : G4_)
-        writer.execute(G4_channel);
+  // Until ADIOS2 is added
+  if (parameters_.isAccumulatingG4() && parameters_.get_g4_distribution() == DistType::NONE) {
+    if (!(parameters_.dump_cluster_Greens_functions())) {
+      writer.execute(G_k_w);
+      writer.execute(G_k_w_err_);
+    }
+
+    for (const auto& G4_channel : G4_)
+      writer.execute(G4_channel);
 
       if (parameters_.get_error_computation_type() != ErrorComputationType::NONE) {
         for (const auto& G4_channel_err : G4_err_)

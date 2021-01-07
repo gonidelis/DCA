@@ -19,6 +19,8 @@ DistType stringToDistType(const std::string& name) {
     return DistType::BLOCKED;
   else if (name == "LINEAR")
     return DistType::LINEAR;
+  if (name == "MPI")
+    return DistType::MPI;
   else if (name == "NONE")
     return DistType::NONE;
   else
@@ -31,6 +33,8 @@ std::string toString(DistType type) {
       return "BLOCKED";
     case DistType::LINEAR:
       return "LINEAR";
+    case DistType::MPI:
+      return "MPI";
     case DistType::NONE:
       return "NONE";
     default:

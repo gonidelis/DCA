@@ -149,6 +149,11 @@ public:
     fnc_values_.resize(nb_elements_new);
   }
 
+  // TODO: remove as it breaks class' invariant.
+  void resize(std::size_t nb_elements_new) {
+    fnc_values_.resize(nb_elements_new);
+  }
+
   void local_resize(std::size_t nb_elements) {}
 
   // Returns the size of the leaf domain with the given index.
@@ -165,6 +170,13 @@ public:
     return fnc_values_;
   }
 
+  const auto& getDomainSizes() const noexcept {
+    return size_sbdm;
+  }
+  const std::vector<scalartype>& getValues() const noexcept {
+    return fnc_values_;
+  }
+
   // Begin and end methods for compatibility with range for loop.
   auto begin() {
     return fnc_values_.begin();
@@ -172,10 +184,10 @@ public:
   auto end() {
     return fnc_values_.end();
   }
-  auto begin() const {
+  const auto begin() const {
     return fnc_values_.begin();
   }
-  auto end() const {
+  const auto end() const {
     return fnc_values_.end();
   }
 
@@ -207,7 +219,7 @@ public:
   // std::vector version
   void linind_2_subind(int linind, std::vector<int>& subind) const;
   // modern RVO version
-  std::vector<size_t> linind_2_subind(int linind) const;
+  std::vector<int> linind_2_subind(int linind) const;
 
   // Computes the linear index for the given subindices of the leaf domains.
   // Precondition: subind stores the the subindices of all LEAF domains.
@@ -346,16 +358,31 @@ function<scalartype, domain, DT>::function(const std::string& name)
     : name_(name),
       function_type(__PRETTY_FUNCTION__),
       dmn(),
-      Nb_sbdms(dmn.get_leaf_domain_sizes().size()) {
-  if constexpr (dist == DistType::BLOCKED || dist == DistType::LINEAR) {
-    throw std::runtime_error(
-        "function named constructor without concurrency reference may only be called for "
-        "DistType::NONE");
-  }
-  start_ = 0;
-  end_ = dmn.get_size();
-  // will zero real or complex values
-  fnc_values_.resize(dmn.get_size(), {});
+      Nb_sbdms(dmn.get_leaf_domain_sizes().size()),
+      size_sbdm(dmn.get_leaf_domain_sizes()),
+      step_sbdm(dmn.get_leaf_domain_steps()),
+      fnc_values_(dmn.get_size()) {
+  for (int linind = 0; linind < size(); ++linind)
+    setToZero(fnc_values_[linind]);
+}
+
+template <typename scalartype, class domain>
+template <class Concurrency>
+function<scalartype, domain>::function(const std::string& name, const Concurrency& concurrency)
+    : name_(name),
+      function_type(__PRETTY_FUNCTION__),
+      dmn(),
+      Nb_sbdms(dmn.get_leaf_domain_sizes().size()),
+      size_sbdm(dmn.get_leaf_domain_sizes()),
+      step_sbdm(dmn.get_leaf_domain_steps()) {
+  // TODO: multi-index access to partitioned function is not safe.
+  const std::size_t mpi_size = concurrency.number_of_processors();
+
+  const std::size_t nb_elements = dca::util::ceilDiv(dmn.get_size(), mpi_size);
+  fnc_values_.resize(nb_elements);
+
+  for (int linind = 0; linind < nb_elements; ++linind)
+    setToZero(fnc_values_[linind]);
 }
 
 /** copy constructor
@@ -391,6 +418,8 @@ function<scalartype, domain, DT>::function(function<scalartype, domain, DT>&& ot
       function_type(__PRETTY_FUNCTION__),
       dmn(),
       Nb_sbdms(dmn.get_leaf_domain_sizes().size()),
+      size_sbdm(dmn.get_leaf_domain_sizes()),
+      step_sbdm(dmn.get_leaf_domain_steps()),
       fnc_values_(std::move(other.fnc_values_)) {
   if (dmn.get_size() != other.dmn.get_size())
     // The other function has not been reset after the domain was initialized.
@@ -562,6 +591,9 @@ inline function<Scalar, domain, DT>& function<Scalar, domain, DT>::operator=(
     }
     fnc_values_ = other.fnc_values_;
   }
+
+  fnc_values_ = other.fnc_values_;
+
   return *this;
 }
 

@@ -24,8 +24,14 @@ set(FFTW_ROOT $ENV{FFTW_DIR}/.. CACHE PATH "Path to fftw3 library")
 set(MAGMA_DIR $ENV{MAGMAROOT} CACHE PATH
   "Path to the MAGMA installation directory. Hint for CMake to find MAGMA.")
 
+<<<<<<< HEAD
 set(FFTW_INCLUDE_DIR $ENV{FFTW_ROOT}/include CACHE PATH "Path to fftw3.h.")
 set(FFTW_LIBRARY $ENV{FFTW_ROOT}/lib/libfftw3.so CACHE FILEPATH "The FFTW3(-compatible) library.")
 
 # Intel MKL flags
 set(CMAKE_EXE_LINKER_FLAGS '-L/opt/intel/compilers_and_libraries_2020.1.217/linux/mkl/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl' CACHE INTERNAL "" FORCE)
+=======
+
+# Intel MKL flags
+set(CMAKE_EXE_LINKER_FLAGS '-L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl' CACHE INTERNAL "" FORCE)
+>>>>>>> merging dca latest commit

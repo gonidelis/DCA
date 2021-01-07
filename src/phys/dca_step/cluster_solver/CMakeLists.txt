@@ -6,7 +6,7 @@ add_subdirectory(ss_ct_hyb)
 
 if (DCA_HAVE_CUDA)
     # All the interdependent .cu files need to be compiled together due to limits of nvlink.
-    add_library(mc_kernels
+    cuda_add_library(mc_kernels
             # CT-INT
             ctint/walker/walker_kernels.cu
             ctint/walker/tools/d_matrix_kernels.cu

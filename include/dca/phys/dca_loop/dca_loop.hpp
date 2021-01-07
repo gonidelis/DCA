@@ -147,10 +147,9 @@ DcaLoop<ParametersType, DcaDataType, MCIntegratorType, DIST>::DcaLoop(
   if (concurrency.id() == concurrency.first()) {
     file_name_ = parameters.get_directory() + parameters.get_filename_dca();
 
-    output_file_ = std::make_shared<io::Writer<concurrency_type>>(
-        concurrency_ref, parameters.get_output_format(), false);
+    output_file_ = std::make_shared<io::Writer>(parameters.get_output_format(), false);
 
-    //dca::util::SignalHandler<concurrency_type>::registerFile(output_file_);
+    dca::util::SignalHandler::registerFile(output_file_);
 
     std::cout << "\n\n\t" << __FUNCTION__ << " has started \t" << dca::util::print_time() << "\n\n";
   }
@@ -162,9 +161,22 @@ void DcaLoop<ParametersType, DcaDataType, MCIntegratorType, DIST>::write() {
     std::cout << "\n\n\t\t start writing " << file_name_ << "\t" << dca::util::print_time() << "\n\n";
 
     output_file_->set_verbose(true);
+
     parameters.write(*output_file_);
     MOMS.write(*output_file_);
+    monte_carlo_integrator_.write(*output_file_);
+    DCA_info_struct.write(*output_file_);
+
+    output_file_->close_file();
+    output_file_.reset();
+
+    std::error_code code;
+    filesystem::rename(file_name_ + ".tmp", file_name_, code);
+    if (code) {
+      std::cerr << "Failed to rename file." << std::endl;
+    }
   }
+}
 
   // This should eventually just be a generic parallel write here.
 #ifdef DCA_WITH_ADIOS2
@@ -207,7 +219,7 @@ void DcaLoop<ParametersType, DDT, MCIntegratorType, DIST>::initialize() {
     MOMS.initializeSigma(parameters.get_initial_self_energy());
     perform_lattice_mapping();
   }
-
+  
   if (concurrency.id() == concurrency.first()) {
     output_file_->open_file(file_name_ + ".tmp", parameters.autoresume() ? false : true);
   }

@@ -1,4 +1,4 @@
-// Copyright (C) 2020 ETH Zurich
+include/dca/phys/dca_step/cluster_solver/shared_tools/accumulation/tp/tp_accumulator_cpu.hpp// Copyright (C) 2020 ETH Zurich
 // Copyright (C) 2020 UT-Battelle, LLC
 // All rights reserved.
 // See LICENSE.txt for terms of usage./
